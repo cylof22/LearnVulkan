@@ -3,9 +3,44 @@
   <ItemGroup>
     <ClInclude Include="pch.h" />
     <ClInclude Include="android_native_app_glue.h" />
+    <ClInclude Include="Include\vulkan\vk_icd.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\vulkan\vk_layer.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\vulkan\vk_platform.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\vulkan\vk_sdk_platform.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="Include\vulkan\vulkan.h">
+      <Filter>include</Filter>
+    </ClInclude>
+    <ClInclude Include="common\vulkan_wrapper.h">
+      <Filter>common</Filter>
+    </ClInclude>
+    <ClInclude Include="VulkanLayerAndExtension.h" />
+    <ClInclude Include="VulkanInstance.h" />
+    <ClInclude Include="VulkanApplication.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="common\vulkan_wrapper.cpp">
+      <Filter>common</Filter>
+    </ClCompile>
+    <ClCompile Include="VulkanLayerAndExtension.cpp" />
+    <ClCompile Include="VulkanInstance.cpp" />
+    <ClCompile Include="VulkanApplication.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="include">
+      <UniqueIdentifier>{b377fac7-f1fb-4c65-9e9a-0438789c97e2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="common">
+      <UniqueIdentifier>{a87d84c6-eaab-463f-a756-a7bca653ee12}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
 </Project>

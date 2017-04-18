@@ -18,6 +18,10 @@
 #define LOGI(...) ((void)__android_log_print(ANDROID_LOG_INFO, "AndroidProject1.NativeActivity", __VA_ARGS__))
 #define LOGW(...) ((void)__android_log_print(ANDROID_LOG_WARN, "AndroidProject1.NativeActivity", __VA_ARGS__))
 
+#include "common\vulkan_wrapper.h"
+#include "VulkanApplication.h"
+//#include <vector>
+
 /**
 * Our saved state data.
 */
@@ -238,7 +242,18 @@ void android_main(struct android_app* state) {
 	}
 
 	engine.animating = 1;
+	int res = InitVulkan();
+	VulkanApplication app;
+	std::vector<const char*> extensionNames = {
+		VK_KHR_SURFACE_EXTENSION_NAME,
+		VK_KHR_ANDROID_SURFACE_EXTENSION_NAME
+	};
 
+	std::vector<const char*> layerNames;
+	/*{
+		VK_LAYER_LUNARG_api_dump
+	};*/
+	app.createVulkanInstance(layerNames,extensionNames);
 	// loop waiting for stuff to do.
 
 	while (1) {
