@@ -68,7 +68,7 @@ VkResult VulkanLayerAndExtension::getDeviceExtensionProperties(std::vector<Layer
 	} while (res == VK_INCOMPLETE);
 
 	// query all the extensions for each layer
-	std::cout << "\nInstanced Layers" << std::endl;
+	std::cout << "\nDevice Layers" << std::endl;
 	std::cout << "==================" << std::endl;
 	for (auto globalLayerProp : layerProperties)
 	{

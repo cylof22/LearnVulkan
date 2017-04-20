@@ -11,6 +11,8 @@ public:
 	~VulkanInstance();
 
 	VkResult createInstance(const std::vector<const char*>& layers, const std::vector<const char*>& extensions, const char* appName);
+
+	const VkInstance& getInstance() { return m_instance; }
 private:
 	VkInstance m_instance;
 };
