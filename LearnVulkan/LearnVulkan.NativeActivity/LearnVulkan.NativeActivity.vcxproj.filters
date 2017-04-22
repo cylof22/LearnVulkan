@@ -21,10 +21,12 @@
     <ClInclude Include="common\vulkan_wrapper.h">
       <Filter>common</Filter>
     </ClInclude>
+    <ClInclude Include="VkCommandBufferMgr.h" />
+    <ClInclude Include="VkMemoryMgr.h" />
     <ClInclude Include="VulkanLayerAndExtension.h" />
     <ClInclude Include="VulkanInstance.h" />
-    <ClInclude Include="VulkanApplication.h" />
     <ClInclude Include="VulkanDevice.h" />
+    <ClInclude Include="VulkanApplication.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
@@ -32,10 +34,12 @@
     <ClCompile Include="common\vulkan_wrapper.cpp">
       <Filter>common</Filter>
     </ClCompile>
+    <ClCompile Include="VkCommandBufferMgr.cpp" />
+    <ClCompile Include="VkMemoryMgr.cpp" />
     <ClCompile Include="VulkanLayerAndExtension.cpp" />
     <ClCompile Include="VulkanInstance.cpp" />
-    <ClCompile Include="VulkanApplication.cpp" />
     <ClCompile Include="VulkanDevice.cpp" />
+    <ClCompile Include="VulkanApplication.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
