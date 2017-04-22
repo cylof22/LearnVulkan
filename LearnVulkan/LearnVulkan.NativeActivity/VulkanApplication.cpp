@@ -63,7 +63,16 @@ VkResult VulkanApplication::handShakeWithDevice(VkPhysicalDevice * pGPU, const s
 			std::vector<VulkanLayerAndExtension::LayerProperties> deviceLayerProps;
 			layerAndExtensions.getDeviceExtensionProperties(deviceLayerProps, pGPU);
 
-			res = m_device->initDevice(layers, extensions);
+			std::vector<const char*> deviceLayers;
+			std::vector<const char*> deviceExtensions;
+			for (const auto& layerProp : deviceLayerProps)
+			{
+				deviceLayers.emplace_back(layerProp.m_properties.layerName);
+
+				for (const auto& extension : layerProp.m_extensions)
+					deviceExtensions.emplace_back(extension.extensionName);
+			}
+			res = m_device->initDevice(deviceLayers, deviceExtensions);
 		}
 		else
 		{
