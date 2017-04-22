@@ -1,6 +1,6 @@
 #include "VulkanDevice.h"
 
-VulkanDevice::VulkanDevice(VkPhysicalDevice * pDevice) : m_pGPU(pDevice), m_pDevice(nullptr), m_pGraphicQueue(nullptr), m_queueFamilySize(0)
+VulkanDevice::VulkanDevice(VkPhysicalDevice * pDevice) : m_pGPU(pDevice), m_queueFamilySize(0)
 {
 	if (pDevice != nullptr)
 	{
@@ -10,10 +10,7 @@ VulkanDevice::VulkanDevice(VkPhysicalDevice * pDevice) : m_pGPU(pDevice), m_pDev
 
 VulkanDevice::~VulkanDevice()
 {
-	if (m_pDevice != nullptr)
-	{
-
-	}
+	vkDestroyDevice(m_device, nullptr);
 }
 
 VkResult VulkanDevice::createDevice(const std::vector<const char*>& layers, const std::vector<const char*>& extensions)
@@ -40,7 +37,7 @@ VkResult VulkanDevice::createDevice(const std::vector<const char*>& layers, cons
 	deviceInfo.enabledExtensionCount = extensions.size();
 	deviceInfo.ppEnabledExtensionNames = extensions.data();
 
-	res = vkCreateDevice(*m_pGPU, &deviceInfo, nullptr, m_pDevice);
+	res = vkCreateDevice(*m_pGPU, &deviceInfo, nullptr, &m_device);
 	return res;
 }
 
@@ -55,7 +52,7 @@ VkResult VulkanDevice::initDevice(const std::vector<const char*>& layers, const 
 
 void VulkanDevice::initGraphicQueue()
 {
-	vkGetDeviceQueue(*m_pDevice, m_graphicQueueIndex, 0, m_pGraphicQueue);
+	vkGetDeviceQueue(m_device, m_graphicQueueIndex, 0, &m_graphicQueue);
 }
 
 VkResult VulkanDevice::destroyDevice()
@@ -84,7 +81,9 @@ VkResult VulkanDevice::initDeviceQueue(const std::vector<const char*>& layers, c
 	VkResult res = VK_SUCCESS;
 	getGpuQueuesAndProperties();
 	if (getGraphicQueueHandle())
+	{
 		res = createDevice(layers, extensions);
+	}
 
 	return res;
 }

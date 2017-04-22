@@ -9,7 +9,7 @@ public:
 	~VulkanDevice();
 
 	VkResult initDevice(const std::vector<const char*>& layers, const std::vector<const char*>& extensions);
-	const VkQueue* getGraphicQueue() { return m_pGraphicQueue; }
+	const VkQueue& getGraphicQueue() { return m_graphicQueue; }
 protected:
 	void initGraphicQueue();
 	VkResult createDevice(const std::vector<const char*>& layers, const std::vector<const char*>& extensions);
@@ -22,8 +22,8 @@ protected:
 
 private:
 	VkPhysicalDevice* m_pGPU;
-	VkDevice*         m_pDevice;
-	VkQueue* m_pGraphicQueue;
+	VkDevice         m_device;
+	VkQueue m_graphicQueue;
 
 	// VkPhysicalDeviceProperties m_gpuProperties;
 	VkPhysicalDeviceMemoryProperties m_gpuMemoryProperties;
