@@ -61,7 +61,8 @@ VkResult VulkanLayerAndExtension::getDeviceExtensionProperties(std::vector<Layer
 	for (auto globalLayerProp : instanceLayerProp) {
 		LayerProperties layerProps;
 		layerProps.m_properties = globalLayerProp.m_properties;
-		if (res = getExtension(layerProps, gpu))
+		res = getExtension(layerProps, gpu);
+		if (res != VK_SUCCESS)
 			continue;
 
 		std::cout << "\n" << globalLayerProp.m_properties.description << "\n\t|\n\t|---[Layer Name]--> " << globalLayerProp.m_properties.layerName << "\n";

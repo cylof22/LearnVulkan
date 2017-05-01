@@ -21,6 +21,7 @@
 #include "common\vulkan_wrapper.h"
 #include "VulkanApplication.h"
 //#include <vector>
+#include <thread>
 
 /**
 * Our saved state data.
@@ -40,11 +41,8 @@ struct engine {
 	ASensorManager* sensorManager;
 	const ASensor* accelerometerSensor;
 	ASensorEventQueue* sensorEventQueue;
-
+	VulkanApplication* m_pApp;
 	int animating;
-	EGLDisplay display;
-	EGLSurface surface;
-	EGLContext context;
 	int32_t width;
 	int32_t height;
 	struct saved_state state;
@@ -55,66 +53,28 @@ struct engine {
 */
 static int engine_init_display(struct engine* engine) {
 	// initialize OpenGL ES and EGL
-
-	/*
-	* Here specify the attributes of the desired configuration.
-	* Below, we select an EGLConfig with at least 8 bits per color
-	* component compatible with on-screen windows
-	*/
-	const EGLint attribs[] = {
-		EGL_SURFACE_TYPE, EGL_WINDOW_BIT,
-		EGL_BLUE_SIZE, 8,
-		EGL_GREEN_SIZE, 8,
-		EGL_RED_SIZE, 8,
-		EGL_NONE
+	engine->m_pApp = new VulkanApplication;
+	std::vector<const char*> extensionNames = {
+		VK_KHR_SURFACE_EXTENSION_NAME
+		, VK_KHR_ANDROID_SURFACE_EXTENSION_NAME
+		, VK_EXT_DEBUG_REPORT_EXTENSION_NAME
+		/*VK_EXT_DEBUG_MARKER_EXTENSION_NAME*/
 	};
-	EGLint w, h, format;
-	EGLint numConfigs;
-	EGLConfig config;
-	EGLSurface surface;
-	EGLContext context;
 
-	EGLDisplay display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+	std::vector<const char*> layerNames = {
+		"VK_LAYER_GOOGLE_threading"
+		,"VK_LAYER_GOOGLE_unique_objects"
+		,"VK_LAYER_LUNARG_parameter_validation"
+		,"VK_LAYER_LUNARG_object_tracker"
+		,"VK_LAYER_LUNARG_image"
+		,"VK_LAYER_LUNARG_core_validation"
+		,"VK_LAYER_LUNARG_swapchain"
+		//,"VK_LAYER_LUNARG_api_dump"
+		//,"VK_LAYER_LUNARG_device_limits"
+	};
 
-	eglInitialize(display, 0, 0);
-
-	/* Here, the application chooses the configuration it desires. In this
-	* sample, we have a very simplified selection process, where we pick
-	* the first EGLConfig that matches our criteria */
-	eglChooseConfig(display, attribs, &config, 1, &numConfigs);
-
-	/* EGL_NATIVE_VISUAL_ID is an attribute of the EGLConfig that is
-	* guaranteed to be accepted by ANativeWindow_setBuffersGeometry().
-	* As soon as we picked a EGLConfig, we can safely reconfigure the
-	* ANativeWindow buffers to match, using EGL_NATIVE_VISUAL_ID. */
-	eglGetConfigAttrib(display, config, EGL_NATIVE_VISUAL_ID, &format);
-
-	ANativeWindow_setBuffersGeometry(engine->app->window, 0, 0, format);
-
-	surface = eglCreateWindowSurface(display, config, engine->app->window, NULL);
-	context = eglCreateContext(display, config, NULL, NULL);
-
-	if (eglMakeCurrent(display, surface, surface, context) == EGL_FALSE) {
-		LOGW("Unable to eglMakeCurrent");
-		return -1;
-	}
-
-	eglQuerySurface(display, surface, EGL_WIDTH, &w);
-	eglQuerySurface(display, surface, EGL_HEIGHT, &h);
-
-	engine->display = display;
-	engine->context = context;
-	engine->surface = surface;
-	engine->width = w;
-	engine->height = h;
-	engine->state.angle = 0;
-
-	// Initialize GL state.
-	glHint(GL_PERSPECTIVE_CORRECTION_HINT, GL_FASTEST);
-	glEnable(GL_CULL_FACE);
-	glShadeModel(GL_SMOOTH);
-	glDisable(GL_DEPTH_TEST);
-
+	unsigned int threadSize = std::thread::hardware_concurrency();
+	engine->m_pApp->createVulkanInstance(layerNames, extensionNames, engine->app->window);
 	return 0;
 }
 
@@ -122,37 +82,14 @@ static int engine_init_display(struct engine* engine) {
 * Just the current frame in the display.
 */
 static void engine_draw_frame(struct engine* engine) {
-	if (engine->display == NULL) {
-		// No display.
-		return;
-	}
 
 	// Just fill the screen with a color.
-	glClearColor(((float)engine->state.x) / engine->width, engine->state.angle,
-		((float)engine->state.y) / engine->height, 1);
-	glClear(GL_COLOR_BUFFER_BIT);
-
-	eglSwapBuffers(engine->display, engine->surface);
 }
 
 /**
 * Tear down the EGL context currently associated with the display.
 */
 static void engine_term_display(struct engine* engine) {
-	if (engine->display != EGL_NO_DISPLAY) {
-		eglMakeCurrent(engine->display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-		if (engine->context != EGL_NO_CONTEXT) {
-			eglDestroyContext(engine->display, engine->context);
-		}
-		if (engine->surface != EGL_NO_SURFACE) {
-			eglDestroySurface(engine->display, engine->surface);
-		}
-		eglTerminate(engine->display);
-	}
-	engine->animating = 0;
-	engine->display = EGL_NO_DISPLAY;
-	engine->context = EGL_NO_CONTEXT;
-	engine->surface = EGL_NO_SURFACE;
 }
 
 /**
@@ -243,28 +180,8 @@ void android_main(struct android_app* state) {
 
 	engine.animating = 1;
 	InitVulkan();
-	VulkanApplication app;
-	std::vector<const char*> extensionNames = {
-		VK_KHR_SURFACE_EXTENSION_NAME,
-		VK_KHR_ANDROID_SURFACE_EXTENSION_NAME,
-		VK_EXT_DEBUG_MARKER_EXTENSION_NAME
-	};
-
-	std::vector<const char*> layerNames; /*= {
-		"VK_LAYER_GOOGLE_threading",
-		"VK_LAYER_GOOGLE_unique_objects",
-		"VK_LAYER_LUNARG_parameter_validation",
-		"VK_LAYER_LUNARG_device_limits",
-		"VK_LAYER_LUNARG_object_tracker",
-		"VK_LAYER_LUNARG_image",
-		"VK_LAYER_LUNARG_core_validation",
-		"VK_LAYER_LUNARG_swapchain",
-		"VK_LAYER_LUNARG_api_dump"
-	};*/
-
-	app.createVulkanInstance(layerNames,extensionNames);
+	
 	// loop waiting for stuff to do.
-
 	while (1) {
 		// Read all pending events.
 		int ident;

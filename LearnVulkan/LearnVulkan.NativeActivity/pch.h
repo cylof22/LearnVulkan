@@ -6,6 +6,7 @@
 // pch.cpp is needed and the pch.h is automatically included in all cpp files
 // that are part of the project
 //
+#include <cassert>
 
 #include <jni.h>
 #include <errno.h>
@@ -13,9 +14,6 @@
 #include <string.h>
 #include <unistd.h>
 #include <sys/resource.h>
-
-#include <EGL/egl.h>
-#include <GLES/gl.h>
 
 #include <android/sensor.h>
 

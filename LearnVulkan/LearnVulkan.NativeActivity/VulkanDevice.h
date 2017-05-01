@@ -10,6 +10,12 @@ public:
 
 	VkResult initDevice(const std::vector<const char*>& layers, const std::vector<const char*>& extensions);
 	const VkQueue& getGraphicQueue() { return m_graphicQueue; }
+
+	uint32_t getQueueFamilySize() const { return m_queueFamilySize; }
+	uint32_t getGraphicQueueFamilyIndex() const { return m_graphicQueueIndex; }
+	const VkDevice& getGraphicDevice() const { return m_device; }
+	const VkPhysicalDevice* getGPU() const { return m_pGPU; }
+	const std::vector<VkQueueFamilyProperties>& getQueueFamilyProperties() const { return m_queueProperties; }
 protected:
 	void initGraphicQueue();
 	VkResult createDevice(const std::vector<const char*>& layers, const std::vector<const char*>& extensions);

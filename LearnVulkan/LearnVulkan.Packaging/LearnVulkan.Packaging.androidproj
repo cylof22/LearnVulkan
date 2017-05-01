@@ -44,6 +44,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'" Label="Configuration">
     <UseDebugLibraries>true</UseDebugLibraries>
     <ConfigurationType>Application</ConfigurationType>
+    <AndroidAPILevel>android-23</AndroidAPILevel>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <UseDebugLibraries>false</UseDebugLibraries>
@@ -120,8 +121,12 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <Content Include="res\values\strings.xml" />
-    <AntBuildXml Include="build.xml" />
-    <AndroidManifest Include="AndroidManifest.xml" />
+    <AntBuildXml Include="build.xml">
+      <SubType>Designer</SubType>
+    </AntBuildXml>
+    <AndroidManifest Include="AndroidManifest.xml">
+      <SubType>Designer</SubType>
+    </AndroidManifest>
     <AntProjectPropertiesFile Include="project.properties" />
   </ItemGroup>
   <ItemGroup>

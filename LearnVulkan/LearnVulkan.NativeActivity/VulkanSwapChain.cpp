@@ -22,17 +22,20 @@ VulkanSwapChain::~VulkanSwapChain()
 	m_presentModes.clear();
 }
 
-bool VulkanSwapChain::init()
+bool VulkanSwapChain::init(ANativeWindow* pWnd)
 {
 	VkResult res = VK_SUCCESS;
-	res = createSurface();
-
-	// find a queue support graphic and present together
 
 	getSupportedFormats();
 
+	res = createSurface(pWnd);
+
+	// find a queue support graphic and present together
+	uint32_t presentQueueIndex = getGraphicsQueueWithPresentation();
+	// set the device's graphics and present queue
+
 	if(res == VK_SUCCESS)
-		res = createSwapChain();
+		res = createSwapChain(pWnd);
 	
 	if (res == VK_SUCCESS)
 		res = getColorImages();
@@ -40,7 +43,7 @@ bool VulkanSwapChain::init()
 	if (res == VK_SUCCESS)
 		res = createColorImageViews();
 
-	return false;
+	return res == VK_SUCCESS;
 }
 
 void VulkanSwapChain::getSupportedFormats()
@@ -65,7 +68,7 @@ void VulkanSwapChain::getSupportedFormats()
 	}
 }
 
-VkResult VulkanSwapChain::createSurface()
+VkResult VulkanSwapChain::createSurface(ANativeWindow* pWnd)
 {
 	VkResult res = VK_SUCCESS;
 
@@ -73,8 +76,7 @@ VkResult VulkanSwapChain::createSurface()
 	info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
 	info.pNext = nullptr;
 	info.flags = 0;
-	// Todo: how to get this native window, by the VulkanApplication?
-	info.window = nullptr;
+	info.window = pWnd;
 
 	res = vkCreateAndroidSurfaceKHR(m_pInstance->getInstance(), &info, nullptr, &m_surface);
 	return res;
@@ -83,11 +85,54 @@ VkResult VulkanSwapChain::createSurface()
 uint32_t VulkanSwapChain::getGraphicsQueueWithPresentation()
 {
 	// find a queue which support graphic and present together; if not, find a seperate present queue
+	uint32_t queueCount = m_pDevice->getQueueFamilySize();
+	const std::vector<VkQueueFamilyProperties>& queueProps = m_pDevice->getQueueFamilyProperties();
 
-	return 0;
+	// Iterate over each queue and get presentation status for each. 
+	std::vector<VkBool32> supportsPresent;
+	supportsPresent.resize(queueCount);
+	for (uint32_t i = 0; i < queueCount; i++) {
+		vkGetPhysicalDeviceSurfaceSupportKHR(*m_pDevice->getGPU(), i, m_surface, &supportsPresent[i]);
+	}
+
+	// Search for a graphics queue and a present queue in the array of queue 
+	// families, try to find one that supports both 
+	uint32_t graphicsQueueNodeIndex = UINT32_MAX;
+	uint32_t presentQueueNodeIndex = UINT32_MAX;
+	for (uint32_t i = 0; i < queueCount; i++) {
+		if ((queueProps[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) != 0) {
+			if (graphicsQueueNodeIndex == UINT32_MAX) {
+				graphicsQueueNodeIndex = i;
+			}
+
+			if (supportsPresent[i] == VK_TRUE) {
+				graphicsQueueNodeIndex = i;
+				presentQueueNodeIndex = i;
+				break;
+			}
+		}
+	}
+
+	if (presentQueueNodeIndex == UINT32_MAX) {
+		// If didn't find a queue that supports both graphics and present, then 
+		// find a separate present queue. 
+		for (uint32_t i = 0; i < queueCount; ++i) {
+			if (supportsPresent[i] == VK_TRUE) {
+				presentQueueNodeIndex = i;
+				break;
+			}
+		}
+	}
+
+	// Generate error if could not find both a graphics and a present queue 
+	if (graphicsQueueNodeIndex == UINT32_MAX || presentQueueNodeIndex == UINT32_MAX) {
+		return  UINT32_MAX;
+	}
+
+	return graphicsQueueNodeIndex;
 }
 
-void VulkanSwapChain::getSurfaceCapabilityAndPresentMode()
+void VulkanSwapChain::getSurfaceCapabilityAndPresentMode(ANativeWindow* pWnd)
 {
 	VkResult res = VK_SUCCESS;
 	const VkPhysicalDevice* pGPU = m_pDevice->getGPU();
@@ -108,7 +153,8 @@ void VulkanSwapChain::getSurfaceCapabilityAndPresentMode()
 		if (m_surfaceCapabilities.currentExtent.width == (uint32_t)(-1))
 		{
 			// reset the extent size to the window's size
-
+			m_surfaceCapabilities.currentExtent.width = ANativeWindow_getWidth(pWnd);
+			m_surfaceCapabilities.currentExtent.height = ANativeWindow_getHeight(pWnd);
 		}
 		else
 		{
@@ -137,7 +183,7 @@ void VulkanSwapChain::managePresentMode()
 
 	m_numberOfSwapChainImages = m_surfaceCapabilities.minImageCount + 1;
 	if (m_surfaceCapabilities.maxImageCount > 0
-		&& m_numberOfSwapChainImages > m_surfaceCapabilities.maxImageCount)
+		&& m_numberOfSwapChainImages >= m_surfaceCapabilities.maxImageCount)
 	{
 		m_numberOfSwapChainImages = m_surfaceCapabilities.maxImageCount;
 	}
@@ -150,9 +196,9 @@ void VulkanSwapChain::managePresentMode()
 		m_surfaceTransformFlags = m_surfaceCapabilities.currentTransform;
 }
 
-VkResult VulkanSwapChain::createSwapChain()
+VkResult VulkanSwapChain::createSwapChain(ANativeWindow* pWnd)
 {
-	getSurfaceCapabilityAndPresentMode();
+	getSurfaceCapabilityAndPresentMode(pWnd);
 
 	managePresentMode();
 
@@ -172,10 +218,11 @@ VkResult VulkanSwapChain::createSwapChain()
 	info.imageColorSpace = VK_COLORSPACE_SRGB_NONLINEAR_KHR;
 	info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 	info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	info.pQueueFamilyIndices = 0;
+	info.queueFamilyIndexCount = 0;
 	info.pQueueFamilyIndices = nullptr;
 
-	return vkCreateSwapchainKHR(m_pDevice->getGraphicDevice(), &info, nullptr, &m_swapchain);
+	VkResult res = vkCreateSwapchainKHR(m_pDevice->getGraphicDevice(), &info, nullptr, &m_swapchain);;
+	return res;
 }
 
 VkResult VulkanSwapChain::createColorBuffers()
@@ -190,11 +237,12 @@ VkResult VulkanSwapChain::createColorBuffers()
 VkResult VulkanSwapChain::getColorImages()
 {
 	VkResult res = VK_SUCCESS;
-	res = vkGetSwapchainImagesKHR(m_pDevice->getGraphicDevice(), m_swapchain, &m_activeColorBuffer, nullptr);
+	uint32_t swapChainImageSize = 0;
+	res = vkGetSwapchainImagesKHR(m_pDevice->getGraphicDevice(), m_swapchain, &swapChainImageSize, nullptr);
 
 	m_swapChainImages.clear();
-	m_swapChainImages.resize(m_activeColorBuffer);
-	res = vkGetSwapchainImagesKHR(m_pDevice->getGraphicDevice(), m_swapchain, &m_activeColorBuffer, m_swapChainImages.data());
+	m_swapChainImages.resize(swapChainImageSize);
+	res = vkGetSwapchainImagesKHR(m_pDevice->getGraphicDevice(), m_swapchain, &swapChainImageSize, m_swapChainImages.data());
 
 	return res;
 }
@@ -209,15 +257,12 @@ VkResult VulkanSwapChain::createColorImageViews()
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		info.pNext = nullptr;
 		info.format = m_colorFormat;
-		info.components.r = VK_COMPONENT_SWIZZLE_R;
-		info.components.g = VK_COMPONENT_SWIZZLE_G;
-		info.components.b = VK_COMPONENT_SWIZZLE_B;
-		info.components.a = VK_COMPONENT_SWIZZLE_A;
+		info.components = { VK_COMPONENT_SWIZZLE_IDENTITY };
 		info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 		info.subresourceRange.baseMipLevel = 0;
 		info.subresourceRange.levelCount = 1;
 		info.subresourceRange.baseArrayLayer = 0;
-		info.subresourceRange.layerCount = 0;
+		info.subresourceRange.layerCount = 1;
 		info.viewType = VK_IMAGE_VIEW_TYPE_2D;
 		info.flags = 0;
 		info.image = m_swapChainImages[i];

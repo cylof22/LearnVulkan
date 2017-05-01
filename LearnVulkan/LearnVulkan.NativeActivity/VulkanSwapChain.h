@@ -10,16 +10,25 @@ public:
 	VulkanSwapChain(VulkanInstance* pInstance, VulkanDevice* pDevice);
 	~VulkanSwapChain();
 
-	bool init();
+	bool init(ANativeWindow* pWnd);
 
+	struct ColorBuffer
+	{
+		VkImage image;
+		VkImageView view;
+	};
+
+	VkFormat getColorFormat() const { return m_colorFormat; }
+
+	const std::vector<ColorBuffer>& getColorBuffers() const { return m_colorBuffers; }
 private:
 	void getSupportedFormats();
-	VkResult createSurface();
+	VkResult createSurface(ANativeWindow* pWnd);
 	uint32_t getGraphicsQueueWithPresentation();
-	void getSurfaceCapabilityAndPresentMode();
+	void getSurfaceCapabilityAndPresentMode(ANativeWindow* pWnd);
 	void managePresentMode();
 
-	VkResult createSwapChain();
+	VkResult createSwapChain(ANativeWindow* pWnd);
 	VkResult createColorBuffers();
 	VkResult getColorImages();
 	VkResult createColorImageViews();
@@ -27,7 +36,6 @@ private:
 private:
 	VkSurfaceKHR m_surface;
 	VkSwapchainKHR m_swapchain;
-	uint32_t m_activeColorBuffer;
 	VkFormat m_colorFormat;
 
 	VkSurfaceCapabilitiesKHR m_surfaceCapabilities;
@@ -39,13 +47,6 @@ private:
 	// only support double buffer, use array
 	std::vector<VkImage> m_swapChainImages;
 	std::vector<VkSurfaceFormatKHR> m_surfaceFormats;
-
-	struct ColorBuffer
-	{
-		VkImage image;
-		VkImageView view;
-	};
-
 	std::vector<ColorBuffer> m_colorBuffers;
 
 	VulkanInstance* m_pInstance;
