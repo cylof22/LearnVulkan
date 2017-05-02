@@ -20,6 +20,7 @@
 
 #include "common\vulkan_wrapper.h"
 #include "VulkanApplication.h"
+#include "VulkanRenderer.h"
 //#include <vector>
 #include <thread>
 
@@ -84,6 +85,8 @@ static int engine_init_display(struct engine* engine) {
 static void engine_draw_frame(struct engine* engine) {
 
 	// Just fill the screen with a color.
+	if(engine->m_pApp && engine->m_pApp->getRender())
+		engine->m_pApp->getRender()->render();
 }
 
 /**

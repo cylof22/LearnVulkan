@@ -19,6 +19,7 @@ public:
 	bool createDepthBuffer(ANativeWindow* pWnd);
 	bool createRenderPass(bool includeDepth, bool clear = true);
 	bool createFrameBuffer(ANativeWindow* pWnd, bool includeDepth, bool clear = true);
+	bool createCommandBuffers();
 	void render();
 private:
 	VulkanSwapChain* m_pSwapChain;
@@ -30,6 +31,10 @@ private:
 	VkRenderPass m_renderPass;
 
 	std::vector<VkFramebuffer> m_framebuffers;
+	std::vector<VkCommandBuffer> m_cmdDraws;
+
 	VkFormat m_depthFormat;
 	VkImageView m_depthImageView;
+
+	ANativeWindow* m_pWnd;
 };

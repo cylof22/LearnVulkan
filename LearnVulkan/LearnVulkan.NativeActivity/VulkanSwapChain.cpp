@@ -183,11 +183,11 @@ void VulkanSwapChain::managePresentMode()
 
 	m_numberOfSwapChainImages = m_surfaceCapabilities.minImageCount + 1;
 	if (m_surfaceCapabilities.maxImageCount > 0
-		&& m_numberOfSwapChainImages >= m_surfaceCapabilities.maxImageCount)
+		&& m_numberOfSwapChainImages > m_surfaceCapabilities.maxImageCount)
 	{
 		m_numberOfSwapChainImages = m_surfaceCapabilities.maxImageCount;
 	}
-
+	
 	m_swapChainImages.resize(m_numberOfSwapChainImages);
 
 	if (m_surfaceCapabilities.supportedTransforms & VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR)

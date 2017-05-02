@@ -7,13 +7,13 @@ public:
 	static VkCommandBufferMgr* get();
 
 	VkResult createCommandBuffer(const VkDevice* pDevice, const VkCommandPool& cmdPool, VkCommandBuffer* pCmdBuffer,
-		const VkCommandBufferAllocateInfo* cmdBufferInfo);
+		const VkCommandBufferAllocateInfo* cmdBufferInfo = nullptr);
 
-	VkResult beginCommandBuffer(const VkCommandBuffer* pCmdbuffer, const VkCommandBufferBeginInfo* pBeginCmdBufferInfo);
+	VkResult beginCommandBuffer(const VkCommandBuffer* pCmdbuffer, const VkCommandBufferBeginInfo* pBeginCmdBufferInfo = nullptr);
 
 	VkResult endCommandBuffer(const VkCommandBuffer* pCmdBuffer);
 
-	VkResult submitCommandBuffer(const VkQueue& queue, const VkCommandBuffer* pCmdBuffer, const VkSubmitInfo* pInfo, const VkFence& fence);
+	VkResult submitCommandBuffer(const VkQueue& queue, const VkCommandBuffer* pCmdBuffer, const VkSubmitInfo* pInfo = nullptr, const VkFence& fence = VK_NULL_HANDLE);
 private:
 	static VkCommandBufferMgr* m_pMgr;
 };

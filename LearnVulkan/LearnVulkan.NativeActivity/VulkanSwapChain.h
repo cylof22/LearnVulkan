@@ -21,6 +21,8 @@ public:
 	VkFormat getColorFormat() const { return m_colorFormat; }
 
 	const std::vector<ColorBuffer>& getColorBuffers() const { return m_colorBuffers; }
+
+	const VkSwapchainKHR* getSwapChain() const { return &m_swapchain; }
 private:
 	void getSupportedFormats();
 	VkResult createSurface(ANativeWindow* pWnd);
@@ -48,7 +50,7 @@ private:
 	std::vector<VkImage> m_swapChainImages;
 	std::vector<VkSurfaceFormatKHR> m_surfaceFormats;
 	std::vector<ColorBuffer> m_colorBuffers;
-
+	
 	VulkanInstance* m_pInstance;
 	VulkanDevice* m_pDevice;
 };

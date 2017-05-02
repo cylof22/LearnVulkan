@@ -6,7 +6,7 @@ VkCommandBufferMgr * VkCommandBufferMgr::get()
 {
 	if (m_pMgr == nullptr)
 		m_pMgr = new VkCommandBufferMgr();
-	return nullptr;
+	return m_pMgr;
 }
 
 VkResult VkCommandBufferMgr::createCommandBuffer(const VkDevice * pDevice, const VkCommandPool & cmdPool, VkCommandBuffer * pCmdBuffer, 
@@ -40,7 +40,7 @@ VkResult VkCommandBufferMgr::beginCommandBuffer(const VkCommandBuffer * pCmdBuff
 	}
 	else
 	{
-		VkCommandBufferInheritanceInfo inheritanceInfo;
+		VkCommandBufferInheritanceInfo inheritanceInfo = {};
 		inheritanceInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
 		inheritanceInfo.pNext = nullptr;
 		inheritanceInfo.renderPass = VK_NULL_HANDLE;

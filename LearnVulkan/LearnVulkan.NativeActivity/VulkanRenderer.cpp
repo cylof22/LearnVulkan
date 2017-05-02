@@ -5,7 +5,7 @@
 #include "VkMemoryMgr.h"
 #include "VkCommandBufferMgr.h"
 
-VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice) : m_pGraphicDevice(pDevice), m_pInstance(pInstance)
+VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice) : m_pGraphicDevice(pDevice), m_pInstance(pInstance), m_pWnd(nullptr)
 {
 	
 }
@@ -24,6 +24,7 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 {
 	if (!pWnd)
 		return false;
+	m_pWnd = pWnd;
 
 	bool isOk = false;
 
@@ -39,11 +40,14 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 		isOk = createDepthBuffer(pWnd);
 
 	if (isOk)
-		createRenderPass(true);
+		isOk = createRenderPass(true);
 
 	if(isOk)
-		createFrameBuffer(pWnd, true);
+		isOk = createFrameBuffer(pWnd, true);
 
+	if (isOk)
+		isOk = createCommandBuffers();
+	
 	return isOk;
 }
 
@@ -51,10 +55,11 @@ bool VulkanRenderer::createCmdPool()
 {
 	if (m_pGraphicDevice)
 	{
-		VkCommandPoolCreateInfo info;
+		VkCommandPoolCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		info.pNext = nullptr;
 		info.queueFamilyIndex = m_pGraphicDevice->getGraphicQueueFamilyIndex();
+		info.flags = 0;
 
 		VkResult res = vkCreateCommandPool(m_pGraphicDevice->getGraphicDevice(), &info, nullptr, &m_cmdPool);
 		return res == VK_SUCCESS;
@@ -136,8 +141,8 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 
 	// create the depth image view
 	VkCommandBuffer depthImageLayoutCmdBuffer;
-	VkCommandBufferMgr::get()->createCommandBuffer(&m_pGraphicDevice->getGraphicDevice(), m_cmdPool, &depthImageLayoutCmdBuffer, nullptr);
-	VkCommandBufferMgr::get()->beginCommandBuffer(&depthImageLayoutCmdBuffer, nullptr);
+	VkCommandBufferMgr::get()->createCommandBuffer(&m_pGraphicDevice->getGraphicDevice(), m_cmdPool, &depthImageLayoutCmdBuffer);
+	VkCommandBufferMgr::get()->beginCommandBuffer(&depthImageLayoutCmdBuffer);
 	{
 		VulkanMemoryMgr::get()->imageLayoutConversion(depthImage, VK_IMAGE_ASPECT_DEPTH_BIT, 
 			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, (VkAccessFlagBits)0, depthImageLayoutCmdBuffer);
@@ -172,6 +177,34 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 // draw every frame
 void VulkanRenderer::render()
 {
+	VkResult res = VK_SUCCESS;
+	const VkSwapchainKHR* pSwapChain = m_pSwapChain->getSwapChain();
+
+	VkSemaphore presentSemaphore;
+	VkSemaphoreCreateInfo semaphoreInfo = {};
+	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	semaphoreInfo.pNext = nullptr;
+	semaphoreInfo.flags = 0;
+	res = vkCreateSemaphore(m_pGraphicDevice->getGraphicDevice(), &semaphoreInfo, nullptr, &presentSemaphore);
+	if (res != VK_SUCCESS)
+		return;
+
+	uint32_t activeColorBufferId = 0;
+	res = vkAcquireNextImageKHR(m_pGraphicDevice->getGraphicDevice(), *pSwapChain, ULLONG_MAX, presentSemaphore, VK_NULL_HANDLE, &activeColorBufferId);
+
+	// queue the command buffer for execution
+	VkCommandBufferMgr::get()->submitCommandBuffer(m_pGraphicDevice->getGraphicQueue(), &m_cmdDraws[activeColorBufferId], nullptr);
+
+	// present the image in the window
+	VkPresentInfoKHR present = {};
+	present.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
+	present.pNext = nullptr;
+	present.swapchainCount = 1;
+	present.pSwapchains = pSwapChain;
+	present.pImageIndices = &activeColorBufferId;
+
+	res = vkQueuePresentKHR(m_pGraphicDevice->getGraphicQueue(), &present);
+	assert(res == VK_SUCCESS);
 }
 
 bool VulkanRenderer::createRenderPass(bool includeDepth, bool clear /*=true*/)
@@ -270,5 +303,62 @@ bool VulkanRenderer::createFrameBuffer(ANativeWindow* pWnd, bool includeDepth, b
 		assert(res == VK_SUCCESS);
 	}
 
-	return res = VK_SUCCESS;
+	return res == VK_SUCCESS;
+}
+
+bool VulkanRenderer::createCommandBuffers()
+{
+	if (m_framebuffers.empty())
+		return false;
+
+	m_cmdDraws.resize(m_framebuffers.size());
+
+	// Only for clear color demo
+	for (uint32_t i = 0; i < m_cmdDraws.size(); i++)
+	{
+		VkCommandBuffer cmdBuffer;
+		VkCommandBufferMgr::get()->createCommandBuffer(&m_pGraphicDevice->getGraphicDevice(), m_cmdPool, &cmdBuffer);
+
+		VkCommandBufferMgr::get()->beginCommandBuffer(&cmdBuffer);
+
+		VkClearValue clearValues = {};
+		switch (i)
+		{
+		case 0:
+			clearValues.color = { 1.0f, 0.0f, 0.0f, 1.0f };
+			break;
+		case 1:
+			clearValues.color = { 0.0f, 1.0f, 0.0f, 1.0f };
+			break;
+		case 2:
+			clearValues.color = { 0.0f, 0.0f, 1.0f, 1.0f };
+			break;
+		default:
+			clearValues.color = { 0.0f, 0.0f, 0.0f, 1.0f };
+		}
+
+		clearValues.depthStencil.depth = 1.0f;
+		clearValues.depthStencil.stencil = 0;
+
+		VkRenderPassBeginInfo renderPassBeginInfo = {};
+		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+		renderPassBeginInfo.pNext = nullptr;
+		renderPassBeginInfo.renderPass = m_renderPass;
+		renderPassBeginInfo.framebuffer = m_framebuffers[i];
+		renderPassBeginInfo.renderArea.offset.x = 0;
+		renderPassBeginInfo.renderArea.offset.y = 0;
+		renderPassBeginInfo.renderArea.extent.width = ANativeWindow_getWidth(m_pWnd);
+		renderPassBeginInfo.renderArea.extent.height = ANativeWindow_getHeight(m_pWnd);
+		renderPassBeginInfo.clearValueCount = 1;
+		renderPassBeginInfo.pClearValues = &clearValues;
+
+		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	    vkCmdEndRenderPass(cmdBuffer);
+
+		VkCommandBufferMgr::get()->endCommandBuffer(&cmdBuffer);
+
+		m_cmdDraws[i] = cmdBuffer;
+	}
+	return true;
 }
