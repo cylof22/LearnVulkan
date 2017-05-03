@@ -20,7 +20,7 @@ VkResult VulkanDevice::createDevice(const std::vector<const char*>& layers, cons
 	float queuePriority = 0.0;
 	// Device queue information
 	VkDeviceQueueCreateInfo queueInfo = { };
-	queueInfo.flags = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+	queueInfo.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
 	queueInfo.pNext = nullptr;
 	queueInfo.queueFamilyIndex = m_graphicQueueIndex;
 	queueInfo.queueCount = 1;
@@ -28,7 +28,7 @@ VkResult VulkanDevice::createDevice(const std::vector<const char*>& layers, cons
 
 	// Device creation information
 	VkDeviceCreateInfo deviceInfo = { };
-	deviceInfo.flags = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
+	deviceInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
 	deviceInfo.pNext = nullptr;
 	deviceInfo.queueCreateInfoCount = 1;
 	deviceInfo.pQueueCreateInfos = &queueInfo;

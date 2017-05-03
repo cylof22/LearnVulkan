@@ -26,9 +26,9 @@ bool VulkanSwapChain::init(ANativeWindow* pWnd)
 {
 	VkResult res = VK_SUCCESS;
 
-	getSupportedFormats();
-
 	res = createSurface(pWnd);
+
+	getSupportedFormats();
 
 	// find a queue support graphic and present together
 	uint32_t presentQueueIndex = getGraphicsQueueWithPresentation();
@@ -72,7 +72,7 @@ VkResult VulkanSwapChain::createSurface(ANativeWindow* pWnd)
 {
 	VkResult res = VK_SUCCESS;
 
-	VkAndroidSurfaceCreateInfoKHR info;
+	VkAndroidSurfaceCreateInfoKHR info = {};
 	info.sType = VK_STRUCTURE_TYPE_ANDROID_SURFACE_CREATE_INFO_KHR;
 	info.pNext = nullptr;
 	info.flags = 0;
@@ -202,7 +202,7 @@ VkResult VulkanSwapChain::createSwapChain(ANativeWindow* pWnd)
 
 	managePresentMode();
 
-	VkSwapchainCreateInfoKHR info;
+	VkSwapchainCreateInfoKHR info = {};
 	info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
 	info.pNext = nullptr;
 	info.surface = m_surface;
@@ -210,7 +210,7 @@ VkResult VulkanSwapChain::createSwapChain(ANativeWindow* pWnd)
 	info.imageFormat = m_colorFormat;
 	info.imageExtent = m_swapChainSize;
 	info.preTransform = m_surfaceTransformFlags;
-	info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+	info.compositeAlpha = VK_COMPOSITE_ALPHA_INHERIT_BIT_KHR;
 	info.imageArrayLayers = 1;
 	info.presentMode = m_swapChainMode;
 	info.oldSwapchain = VK_NULL_HANDLE;
@@ -253,7 +253,7 @@ VkResult VulkanSwapChain::createColorImageViews()
 
 	for (size_t i = 0; i < m_swapChainImages.size(); i++)
 	{
-		VkImageViewCreateInfo info;
+		VkImageViewCreateInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 		info.pNext = nullptr;
 		info.format = m_colorFormat;

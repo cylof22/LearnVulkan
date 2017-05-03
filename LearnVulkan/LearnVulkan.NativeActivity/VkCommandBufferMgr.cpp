@@ -12,6 +12,7 @@ VkCommandBufferMgr * VkCommandBufferMgr::get()
 VkResult VkCommandBufferMgr::createCommandBuffer(const VkDevice * pDevice, const VkCommandPool & cmdPool, VkCommandBuffer * pCmdBuffer, 
 	const VkCommandBufferAllocateInfo * cmdBufferInfo)
 {
+	// Dependency on the intialize SwapChain Extensions and initialize CommandPool
 	VkResult res = VK_SUCCESS;
 	if (cmdBufferInfo)
 	{
@@ -50,7 +51,7 @@ VkResult VkCommandBufferMgr::beginCommandBuffer(const VkCommandBuffer * pCmdBuff
 		inheritanceInfo.queryFlags = 0;
 		inheritanceInfo.pipelineStatistics = 0;
 
-		VkCommandBufferBeginInfo info;
+		VkCommandBufferBeginInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		info.pNext = nullptr;
 		info.flags = 0;
@@ -72,7 +73,7 @@ VkResult VkCommandBufferMgr::submitCommandBuffer(const VkQueue & queue, const Vk
 	if (pInfo)
 		vkQueueSubmit(queue, 1, pInfo, fence);
 
-	VkSubmitInfo info;
+	VkSubmitInfo info = {};
 	info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	info.pNext = nullptr;
 	info.waitSemaphoreCount = 0;

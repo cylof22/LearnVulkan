@@ -8,7 +8,7 @@ VulkanMemoryMgr * VulkanMemoryMgr::get()
 	if (m_pMemoryMgr == nullptr)
 		m_pMemoryMgr = new VulkanMemoryMgr();
 
-	return nullptr;
+	return m_pMemoryMgr;
 }
 
 bool VulkanMemoryMgr::memoryTypeFromProperties(const VkPhysicalDevice* pGPU, uint32_t typeBits, VkFlags requirementsMask, uint32_t& typeIndex)
@@ -41,7 +41,7 @@ bool VulkanMemoryMgr::imageLayoutConversion(const VkImage& image, const VkImageA
 	if (cmdBuffer == VK_NULL_HANDLE)
 		return false;
 
-	VkImageMemoryBarrier imageBarrier;
+	VkImageMemoryBarrier imageBarrier = {};
 	imageBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	imageBarrier.pNext = nullptr;
 	imageBarrier.srcAccessMask = srcAcessFlag;
