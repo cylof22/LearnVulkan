@@ -59,23 +59,9 @@ VkResult VulkanApplication::handShakeWithDevice(VkPhysicalDevice * pGPU, const s
 		m_pDevice = new VulkanDevice(pGPU);
 		if (m_pDevice != nullptr)
 		{
-			// print the available extension in debug
-			VulkanLayerAndExtension layerAndExtensions;
-			std::vector<VulkanLayerAndExtension::LayerProperties> deviceLayerProps;
-			layerAndExtensions.getDeviceExtensionProperties(deviceLayerProps, pGPU);
-
-			std::vector<const char*> deviceLayers;
 			std::vector<const char*> deviceExtensions;
-			for (const auto& layerProp : deviceLayerProps)
-			{
-				deviceLayers.emplace_back(layerProp.m_properties.layerName);
-
-				for (const auto& extension : layerProp.m_extensions)
-					deviceExtensions.emplace_back(extension.extensionName);
-			}
-
 			deviceExtensions.emplace_back(VK_KHR_SWAPCHAIN_EXTENSION_NAME);
-			res = m_pDevice->initDevice(deviceLayers, deviceExtensions);
+			res = m_pDevice->initDevice(layers, deviceExtensions);
 
 			if (res == VK_SUCCESS)
 			{
