@@ -19,8 +19,11 @@ public:
 	bool createDepthBuffer(ANativeWindow* pWnd);
 	bool createRenderPass(bool includeDepth, bool clear = true);
 	bool createFrameBuffer(ANativeWindow* pWnd, bool includeDepth, bool clear = true);
-	bool createCommandBuffers();
+	bool createCommandBuffers(bool includeDepth);
 	void render();
+
+protected:
+	bool reInit();
 private:
 	VulkanSwapChain* m_pSwapChain;
 	VulkanDevice* m_pGraphicDevice;

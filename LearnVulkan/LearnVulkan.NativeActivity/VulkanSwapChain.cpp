@@ -12,10 +12,11 @@ VulkanSwapChain::~VulkanSwapChain()
 	for (size_t i = 0; i < m_colorBuffers.size(); i++)
 		vkDestroyImageView(m_pDevice->getGraphicDevice(), m_colorBuffers[i].view, nullptr);
 
-	// destroy the swapchain
-	vkDestroySwapchainKHR(m_pDevice->getGraphicDevice(), m_swapchain, nullptr);
 	// destroy the surface
 	vkDestroySurfaceKHR(m_pInstance->getInstance(), m_surface, nullptr);
+
+	// destroy the swapchain
+	vkDestroySwapchainKHR(m_pDevice->getGraphicDevice(), m_swapchain, nullptr);
 
 	m_colorBuffers.clear();
 	m_surfaceFormats.clear();
@@ -181,12 +182,20 @@ void VulkanSwapChain::managePresentMode()
 		}
 	}
 
-	m_numberOfSwapChainImages = m_surfaceCapabilities.minImageCount + 1;
-	if (m_surfaceCapabilities.maxImageCount > 0
-		&& m_numberOfSwapChainImages > m_surfaceCapabilities.maxImageCount)
+	if (m_surfaceCapabilities.minImageCount == 2)
 	{
-		m_numberOfSwapChainImages = m_surfaceCapabilities.maxImageCount;
+		m_numberOfSwapChainImages = 2;
 	}
+	else
+	{
+		m_numberOfSwapChainImages = m_surfaceCapabilities.minImageCount + 1;
+		if (m_surfaceCapabilities.maxImageCount > 0
+			&& m_numberOfSwapChainImages > m_surfaceCapabilities.maxImageCount)
+		{
+			m_numberOfSwapChainImages = m_surfaceCapabilities.maxImageCount;
+		}
+	}
+	
 	
 	m_swapChainImages.resize(m_numberOfSwapChainImages);
 

@@ -7,7 +7,7 @@
 
 VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice) : m_pGraphicDevice(pDevice), m_pInstance(pInstance), m_pWnd(nullptr)
 {
-	
+	m_pSwapChain = new VulkanSwapChain(m_pInstance, m_pGraphicDevice);
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -28,8 +28,6 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 
 	bool isOk = false;
 
-	m_pSwapChain = new VulkanSwapChain(m_pInstance, m_pGraphicDevice);
-
 	if (m_pSwapChain)
 		isOk = createSwapChain(pWnd);
 
@@ -46,7 +44,7 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 		isOk = createFrameBuffer(pWnd, true);
 
 	if (isOk)
-		isOk = createCommandBuffers();
+		isOk = createCommandBuffers(true);
 	
 	return isOk;
 }
@@ -94,13 +92,14 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 	}
 
 	// create the depth image
-	VkImageCreateInfo info;
+	VkImageCreateInfo info = {};
 	info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	info.pNext = nullptr;
 	info.format = m_depthFormat;
 	info.tiling = depthTiling;
 	info.extent.width = ANativeWindow_getWidth(pWnd);
 	info.extent.height = ANativeWindow_getHeight(pWnd);
+	info.extent.depth = 1;
 	info.mipLevels = 1;
 	info.arrayLayers = 1;
 	info.samples = VK_SAMPLE_COUNT_1_BIT;
@@ -108,6 +107,7 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 	info.pQueueFamilyIndices = nullptr;
 	info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+	info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	info.flags = 0;
 
 	VkImage depthImage;
@@ -120,7 +120,7 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 	vkGetImageMemoryRequirements(m_pGraphicDevice->getGraphicDevice(), depthImage, &depthImageRequirement);
 
 	//allocate the device memory
-	VkMemoryAllocateInfo allocateInfo;
+	VkMemoryAllocateInfo allocateInfo = {};
 	allocateInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	allocateInfo.pNext = nullptr;
 	allocateInfo.allocationSize = depthImageRequirement.size;
@@ -141,16 +141,16 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 
 	// create the depth image view
 	VkCommandBuffer depthImageLayoutCmdBuffer;
-	VkCommandBufferMgr::get()->createCommandBuffer(&m_pGraphicDevice->getGraphicDevice(), m_cmdPool, &depthImageLayoutCmdBuffer);
-	VkCommandBufferMgr::get()->beginCommandBuffer(&depthImageLayoutCmdBuffer);
+	res = VkCommandBufferMgr::get()->createCommandBuffer(&m_pGraphicDevice->getGraphicDevice(), m_cmdPool, &depthImageLayoutCmdBuffer);
+	res = VkCommandBufferMgr::get()->beginCommandBuffer(&depthImageLayoutCmdBuffer);
 	{
 		VulkanMemoryMgr::get()->imageLayoutConversion(depthImage, VK_IMAGE_ASPECT_DEPTH_BIT, 
 			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, (VkAccessFlagBits)0, depthImageLayoutCmdBuffer);
 	}
-	VkCommandBufferMgr::get()->endCommandBuffer(&depthImageLayoutCmdBuffer);
-	VkCommandBufferMgr::get()->submitCommandBuffer(m_pGraphicDevice->getGraphicQueue(), &depthImageLayoutCmdBuffer, nullptr, m_renderFence);
+	res = VkCommandBufferMgr::get()->endCommandBuffer(&depthImageLayoutCmdBuffer);
+	res = VkCommandBufferMgr::get()->submitCommandBuffer(m_pGraphicDevice->getGraphicQueue(), &depthImageLayoutCmdBuffer, nullptr, m_renderFence);
 
-	VkImageViewCreateInfo depthImageViewInfo;
+	VkImageViewCreateInfo depthImageViewInfo = {};
 	depthImageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	depthImageViewInfo.pNext = nullptr;
 	depthImageViewInfo.image = depthImage;
@@ -177,6 +177,7 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 // draw every frame
 void VulkanRenderer::render()
 {
+	sleep(1);
 	VkResult res = VK_SUCCESS;
 	const VkSwapchainKHR* pSwapChain = m_pSwapChain->getSwapChain();
 
@@ -204,74 +205,91 @@ void VulkanRenderer::render()
 	present.pImageIndices = &activeColorBufferId;
 
 	res = vkQueuePresentKHR(m_pGraphicDevice->getGraphicQueue(), &present);
+
+	if (res == VK_ERROR_OUT_OF_DATE_KHR)
+	{
+		assert(false);
+		reInit();
+	}
+	else
+	{
+
+	}
 	assert(res == VK_SUCCESS);
+}
+
+bool VulkanRenderer::reInit()
+{
+	vkDeviceWaitIdle(m_pGraphicDevice->getGraphicDevice());
+
+	delete m_pSwapChain;
+	m_pSwapChain = new VulkanSwapChain(m_pInstance, m_pGraphicDevice);
+
+	init(m_pWnd);
+	return false;
 }
 
 bool VulkanRenderer::createRenderPass(bool includeDepth, bool clear /*=true*/)
 {
 	VkResult res = VK_SUCCESS;
+	/* Need attachments for render target and depth buffer */
+	VkAttachmentDescription attachments[2];
+	attachments[0].format = m_pSwapChain->getColorFormat();
+	attachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
+	attachments[0].loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	attachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+	attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+	attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+	attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	attachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	//attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	attachments[0].flags = 0;
 
-	VkAttachmentDescription passAttachments[2];
-
-	// specify the color attachment
-	passAttachments[0].format = m_pSwapChain->getColorFormat();
-	passAttachments[0].samples = VK_SAMPLE_COUNT_1_BIT;
-	passAttachments[0].loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	passAttachments[0].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-	passAttachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-	passAttachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
-	passAttachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	passAttachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	passAttachments[0].flags = VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT;
-
-	// specify the depth attachment
-	if (includeDepth)
+	if (includeDepth) 
 	{
-		passAttachments[1].format = m_depthFormat;
-		passAttachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
-		passAttachments[1].loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-		passAttachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-		passAttachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-		passAttachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
-		passAttachments[1].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-		passAttachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-		passAttachments[1].flags = VK_ATTACHMENT_DESCRIPTION_MAY_ALIAS_BIT;
+		attachments[1].format = m_depthFormat;
+		attachments[1].samples = VK_SAMPLE_COUNT_1_BIT;
+		attachments[1].loadOp = clear ? VK_ATTACHMENT_LOAD_OP_CLEAR : VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+		attachments[1].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[1].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+		attachments[1].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+		attachments[1].initialLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		attachments[1].finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+		attachments[1].flags = 0;
 	}
 
-	// define the color buffer attachment binding point
-	VkAttachmentReference colorReference;
-	colorReference.attachment = 0;
-	colorReference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	VkAttachmentReference color_reference = {};
+	color_reference.attachment = 0;
+	color_reference.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
-	VkAttachmentReference depthReference;
-	depthReference.attachment = 1;
-	depthReference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	VkAttachmentReference depth_reference = {};
+	depth_reference.attachment = 1;
+	depth_reference.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
-	VkSubpassDescription subPassDesc = {};
-	subPassDesc.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
-	subPassDesc.flags = 0;
-	subPassDesc.inputAttachmentCount = 0;
-	subPassDesc.pInputAttachments = nullptr;
-	subPassDesc.colorAttachmentCount = 1;
-	subPassDesc.pColorAttachments = &colorReference;
-	subPassDesc.preserveAttachmentCount = 0;
-	subPassDesc.pResolveAttachments = nullptr;
-	subPassDesc.pDepthStencilAttachment = includeDepth ? &depthReference : nullptr;
-	subPassDesc.preserveAttachmentCount = 0;
-	subPassDesc.pPreserveAttachments = nullptr;
+	VkSubpassDescription subpass = {};
+	subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+	subpass.flags = 0;
+	subpass.inputAttachmentCount = 0;
+	subpass.pInputAttachments = nullptr;
+	subpass.colorAttachmentCount = 1;
+	subpass.pColorAttachments = &color_reference;
+	subpass.pResolveAttachments = nullptr;
+	subpass.pDepthStencilAttachment = includeDepth ? &depth_reference : nullptr;
+	subpass.preserveAttachmentCount = 0;
+	subpass.pPreserveAttachments = nullptr;
 
-	VkRenderPassCreateInfo info = {};
-	info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-	info.pNext = nullptr;
-	info.attachmentCount = includeDepth ? 2 : 1;
-	info.pAttachments = passAttachments;
-	info.subpassCount = 1;
-	info.pSubpasses = &subPassDesc;
-	info.dependencyCount = 0;
-	info.pDependencies = nullptr;
+	VkRenderPassCreateInfo rp_info = {};
+	rp_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+	rp_info.pNext = nullptr;
+	rp_info.attachmentCount = includeDepth ? 2 : 1;
+	rp_info.pAttachments = attachments;
+	rp_info.subpassCount = 1;
+	rp_info.pSubpasses = &subpass;
+	rp_info.dependencyCount = 0;
+	rp_info.pDependencies = nullptr;
 
-	res = vkCreateRenderPass(m_pGraphicDevice->getGraphicDevice(), &info, nullptr, &m_renderPass);
-
+	res = vkCreateRenderPass(m_pGraphicDevice->getGraphicDevice(), &rp_info, NULL, &m_renderPass);
+	assert(res == VK_SUCCESS);
 	return res == VK_SUCCESS;
 }
 
@@ -291,7 +309,7 @@ bool VulkanRenderer::createFrameBuffer(ANativeWindow* pWnd, bool includeDepth, b
 	info.pAttachments = imageViews;
 	info.width = ANativeWindow_getWidth(pWnd);
 	info.height = ANativeWindow_getHeight(pWnd);
-	info.layers = 0;
+	info.layers = 1;
 
 	m_framebuffers.clear();
 	m_framebuffers.resize(m_pSwapChain->getColorBuffers().size());
@@ -306,35 +324,45 @@ bool VulkanRenderer::createFrameBuffer(ANativeWindow* pWnd, bool includeDepth, b
 	return res == VK_SUCCESS;
 }
 
-bool VulkanRenderer::createCommandBuffers()
+bool VulkanRenderer::createCommandBuffers(bool includeDepth)
 {
 	if (m_framebuffers.empty())
 		return false;
 
+	VkResult res = VK_SUCCESS;
 	m_cmdDraws.resize(m_framebuffers.size());
 
 	// Only for clear color demo
 	for (uint32_t i = 0; i < m_cmdDraws.size(); i++)
 	{
 		VkCommandBuffer cmdBuffer;
-		VkCommandBufferMgr::get()->createCommandBuffer(&m_pGraphicDevice->getGraphicDevice(), m_cmdPool, &cmdBuffer);
-
-		VkCommandBufferMgr::get()->beginCommandBuffer(&cmdBuffer);
-
-		VkClearValue clearValues = {};
+		res = VkCommandBufferMgr::get()->createCommandBuffer(&m_pGraphicDevice->getGraphicDevice(), m_cmdPool, &cmdBuffer);
+		VkClearValue clearValues;
 		switch (i)
 		{
 		case 0:
-			clearValues.color = { 1.0f, 0.0f, 0.0f, 1.0f };
+			clearValues.color.float32[0] = 1.0f;
+			clearValues.color.float32[1] = 0.0f;
+			clearValues.color.float32[2] = 0.0f;
+			clearValues.color.float32[3] = 1.0f;
 			break;
 		case 1:
-			clearValues.color = { 0.0f, 1.0f, 0.0f, 1.0f };
+			clearValues.color.float32[0] = 0.0f;
+			clearValues.color.float32[1] = 1.0f;
+			clearValues.color.float32[2] = 0.0f;
+			clearValues.color.float32[3] = 1.0f;
 			break;
 		case 2:
-			clearValues.color = { 0.0f, 0.0f, 1.0f, 1.0f };
+			clearValues.color.float32[0] = 0.0f;
+			clearValues.color.float32[1] = 0.0f;
+			clearValues.color.float32[2] = 1.0f;
+			clearValues.color.float32[3] = 1.0f;
 			break;
 		default:
-			clearValues.color = { 0.0f, 0.0f, 0.0f, 1.0f };
+			clearValues.color.float32[0] = 0.0f;
+			clearValues.color.float32[1] = 0.0f;
+			clearValues.color.float32[2] = 0.0f;
+			clearValues.color.float32[3] = 1.0f;
 		}
 
 		clearValues.depthStencil.depth = 1.0f;
@@ -349,12 +377,14 @@ bool VulkanRenderer::createCommandBuffers()
 		renderPassBeginInfo.renderArea.offset.y = 0;
 		renderPassBeginInfo.renderArea.extent.width = ANativeWindow_getWidth(m_pWnd);
 		renderPassBeginInfo.renderArea.extent.height = ANativeWindow_getHeight(m_pWnd);
-		renderPassBeginInfo.clearValueCount = 1;
+		renderPassBeginInfo.clearValueCount = includeDepth ? 2 : 1;
 		renderPassBeginInfo.pClearValues = &clearValues;
+
+		res = VkCommandBufferMgr::get()->beginCommandBuffer(&cmdBuffer);
 
 		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
-	    vkCmdEndRenderPass(cmdBuffer);
+		vkCmdEndRenderPass(cmdBuffer);
 
 		VkCommandBufferMgr::get()->endCommandBuffer(&cmdBuffer);
 
