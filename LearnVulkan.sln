@@ -1,13 +1,15 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.26403.0
+VisualStudioVersion = 15.0.26403.7
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "LearnVulkan", "LearnVulkan", "{25F3D158-4ED7-42EB-9F8C-6DBD78036D55}"
 EndProject
 Project("{39E2626F-3545-4960-A6E8-258AD8476CE5}") = "LearnVulkan.Packaging", "LearnVulkan\LearnVulkan.Packaging\LearnVulkan.Packaging.androidproj", "{8457AB68-37B1-44B5-9CC9-CA5DD0CDB2D4}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LearnVulkan.NativeActivity", "LearnVulkan\LearnVulkan.NativeActivity\LearnVulkan.NativeActivity.vcxproj", "{E83594CF-5AD1-487A-B350-A0608692E02A}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Shaderc", "Shaderc\Shaderc.vcxproj", "{961511D3-B0E1-403F-BA88-A61659B1591C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -61,6 +63,22 @@ Global
 		{E83594CF-5AD1-487A-B350-A0608692E02A}.Release|x64.Build.0 = Release|x64
 		{E83594CF-5AD1-487A-B350-A0608692E02A}.Release|x86.ActiveCfg = Release|x86
 		{E83594CF-5AD1-487A-B350-A0608692E02A}.Release|x86.Build.0 = Release|x86
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Debug|ARM.ActiveCfg = Debug|ARM
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Debug|ARM.Build.0 = Debug|ARM
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Debug|ARM64.Build.0 = Debug|ARM64
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Debug|x64.ActiveCfg = Debug|x64
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Debug|x64.Build.0 = Debug|x64
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Debug|x86.ActiveCfg = Debug|x86
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Debug|x86.Build.0 = Debug|x86
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Release|ARM.ActiveCfg = Release|ARM
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Release|ARM.Build.0 = Release|ARM
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Release|ARM64.ActiveCfg = Release|ARM64
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Release|ARM64.Build.0 = Release|ARM64
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Release|x64.ActiveCfg = Release|x64
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Release|x64.Build.0 = Release|x64
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Release|x86.ActiveCfg = Release|x86
+		{961511D3-B0E1-403F-BA88-A61659B1591C}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -68,5 +86,6 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{8457AB68-37B1-44B5-9CC9-CA5DD0CDB2D4} = {25F3D158-4ED7-42EB-9F8C-6DBD78036D55}
 		{E83594CF-5AD1-487A-B350-A0608692E02A} = {25F3D158-4ED7-42EB-9F8C-6DBD78036D55}
+		{961511D3-B0E1-403F-BA88-A61659B1591C} = {25F3D158-4ED7-42EB-9F8C-6DBD78036D55}
 	EndGlobalSection
 EndGlobal
