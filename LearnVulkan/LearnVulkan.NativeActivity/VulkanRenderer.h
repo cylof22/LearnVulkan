@@ -40,4 +40,7 @@ private:
 	VkImageView m_depthImageView;
 
 	ANativeWindow* m_pWnd;
+
+	VkSemaphore m_presentCompleteSemaphore;
+	VkSemaphore m_drawCompleteSemaphore;
 };

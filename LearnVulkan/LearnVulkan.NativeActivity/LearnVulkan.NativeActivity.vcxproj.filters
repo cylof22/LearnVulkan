@@ -22,7 +22,6 @@
       <Filter>common</Filter>
     </ClInclude>
     <ClInclude Include="VkCommandBufferMgr.h" />
-    <ClInclude Include="VkMemoryMgr.h" />
     <ClInclude Include="VulkanLayerAndExtension.h" />
     <ClInclude Include="VulkanInstance.h" />
     <ClInclude Include="VulkanDevice.h" />
@@ -30,6 +29,13 @@
     <ClInclude Include="VulkanPipeline.h" />
     <ClInclude Include="VulkanSwapChain.h" />
     <ClInclude Include="VulkanRenderer.h" />
+    <ClInclude Include="VulkanHardwareVertexBuffer.h" />
+    <ClInclude Include="VulkanHardwareIndexBuffer.h" />
+    <ClInclude Include="VulkanRenderable.h" />
+    <ClInclude Include="VulkanGpuProgram.h" />
+    <ClInclude Include="VulkanPipelineState.h" />
+    <ClInclude Include="VulkanMemoryBufferMgr.h" />
+    <ClInclude Include="VulkanMemoryMgr.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
@@ -38,7 +44,6 @@
       <Filter>common</Filter>
     </ClCompile>
     <ClCompile Include="VkCommandBufferMgr.cpp" />
-    <ClCompile Include="VkMemoryMgr.cpp" />
     <ClCompile Include="VulkanLayerAndExtension.cpp" />
     <ClCompile Include="VulkanInstance.cpp" />
     <ClCompile Include="VulkanDevice.cpp" />
@@ -46,6 +51,12 @@
     <ClCompile Include="VulkanPipeline.cpp" />
     <ClCompile Include="VulkanSwapChain.cpp" />
     <ClCompile Include="VulkanRenderer.cpp" />
+    <ClCompile Include="VulkanHardwareVertexBuffer.cpp" />
+    <ClCompile Include="VulkanHardwareIndexBuffer.cpp" />
+    <ClCompile Include="VulkanRenderable.cpp" />
+    <ClCompile Include="VulkanGpuProgram.cpp" />
+    <ClCompile Include="VulkanMemoryBufferMgr.cpp" />
+    <ClCompile Include="VulkanMemoryMgr.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">

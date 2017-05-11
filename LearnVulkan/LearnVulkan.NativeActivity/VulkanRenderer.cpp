@@ -2,12 +2,28 @@
 #include "VulkanInstance.h"
 #include "VulkanDevice.h"
 #include "VulkanSwapChain.h"
-#include "VkMemoryMgr.h"
+#include "VulkanMemoryMgr.h"
 #include "VkCommandBufferMgr.h"
 
 VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice) : m_pGraphicDevice(pDevice), m_pInstance(pInstance), m_pWnd(nullptr)
 {
 	m_pSwapChain = new VulkanSwapChain(m_pInstance, m_pGraphicDevice);
+
+	// present semaphore
+	VkSemaphoreCreateInfo presentSemaphoreInfo = {};
+	presentSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	presentSemaphoreInfo.pNext = nullptr;
+	presentSemaphoreInfo.flags = 0;
+
+	vkCreateSemaphore(m_pGraphicDevice->getGraphicDevice(), &presentSemaphoreInfo, nullptr, &m_presentCompleteSemaphore);
+
+	// draw semaphore
+	VkSemaphoreCreateInfo drawSemaphoreInfo = {};
+	drawSemaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	drawSemaphoreInfo.pNext = nullptr;
+	drawSemaphoreInfo.flags = 0;
+
+	vkCreateSemaphore(m_pGraphicDevice->getGraphicDevice(), &drawSemaphoreInfo, nullptr, &m_drawCompleteSemaphore);
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -18,6 +34,9 @@ VulkanRenderer::~VulkanRenderer()
 	for (uint32_t i = 0; i < m_framebuffers.size(); i++)
 		vkDestroyFramebuffer(m_pGraphicDevice->getGraphicDevice(), m_framebuffers[i], nullptr);
 	m_framebuffers.clear();
+
+	vkDestroySemaphore(m_pGraphicDevice->getGraphicDevice(), m_presentCompleteSemaphore, nullptr);
+	vkDestroySemaphore(m_pGraphicDevice->getGraphicDevice(), m_drawCompleteSemaphore, nullptr);
 }
 
 bool VulkanRenderer::init(ANativeWindow* pWnd)
@@ -179,22 +198,29 @@ void VulkanRenderer::render()
 {
 	sleep(1);
 	VkResult res = VK_SUCCESS;
+
 	const VkSwapchainKHR* pSwapChain = m_pSwapChain->getSwapChain();
 
-	VkSemaphore presentSemaphore;
-	VkSemaphoreCreateInfo semaphoreInfo = {};
-	semaphoreInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-	semaphoreInfo.pNext = nullptr;
-	semaphoreInfo.flags = 0;
-	res = vkCreateSemaphore(m_pGraphicDevice->getGraphicDevice(), &semaphoreInfo, nullptr, &presentSemaphore);
-	if (res != VK_SUCCESS)
-		return;
-
 	uint32_t activeColorBufferId = 0;
-	res = vkAcquireNextImageKHR(m_pGraphicDevice->getGraphicDevice(), *pSwapChain, ULLONG_MAX, presentSemaphore, VK_NULL_HANDLE, &activeColorBufferId);
+	res = vkAcquireNextImageKHR(m_pGraphicDevice->getGraphicDevice(), *pSwapChain, UINT64_MAX, m_presentCompleteSemaphore, VK_NULL_HANDLE, &activeColorBufferId);
+
+	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.pNext = nullptr;
+	submitInfo.waitSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &m_presentCompleteSemaphore;
+	submitInfo.pWaitDstStageMask = &submitPipelineStages;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pCommandBuffers = &m_cmdDraws[activeColorBufferId];
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pSignalSemaphores = &m_drawCompleteSemaphore;
 
 	// queue the command buffer for execution
-	VkCommandBufferMgr::get()->submitCommandBuffer(m_pGraphicDevice->getGraphicQueue(), &m_cmdDraws[activeColorBufferId], nullptr);
+	vkQueueSubmit(m_pGraphicDevice->getGraphicQueue(), 1, &submitInfo, VK_NULL_HANDLE);
+
+	//VkCommandBufferMgr::get()->submitCommandBuffer(m_pGraphicDevice->getGraphicQueue(), &m_cmdDraws[activeColorBufferId], &submitInfo);
 
 	// present the image in the window
 	VkPresentInfoKHR present = {};
@@ -203,6 +229,9 @@ void VulkanRenderer::render()
 	present.swapchainCount = 1;
 	present.pSwapchains = pSwapChain;
 	present.pImageIndices = &activeColorBufferId;
+	present.waitSemaphoreCount = 1;
+	present.pWaitSemaphores = &m_drawCompleteSemaphore;
+	present.pResults = nullptr;
 
 	res = vkQueuePresentKHR(m_pGraphicDevice->getGraphicQueue(), &present);
 
