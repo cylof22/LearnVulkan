@@ -54,7 +54,7 @@ VkResult VkCommandBufferMgr::beginCommandBuffer(const VkCommandBuffer * pCmdBuff
 		VkCommandBufferBeginInfo info = {};
 		info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 		info.pNext = nullptr;
-		info.flags = 0;
+		info.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
 		info.pInheritanceInfo = &inheritanceInfo;
 
 		res = vkBeginCommandBuffer(*pCmdBuffer, &info);
