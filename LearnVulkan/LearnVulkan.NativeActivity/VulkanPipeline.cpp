@@ -4,8 +4,9 @@
 #include "VulkanDevice.h"
 #include "VulkanRenderable.h"
 #include "VulkanHardwareVertexBuffer.h"
+#include "VulkanPipelineState.h"
 
-VulkanPipeline::VulkanPipeline(VulkanApplication * pApp, VulkanDevice * pDevice) : m_pApp(pApp), m_pDevice(pDevice)
+VulkanPipeline::VulkanPipeline(VulkanDevice * pDevice) : m_pDevice(pDevice)
 {
 }
 
@@ -27,7 +28,7 @@ VkResult VulkanPipeline::createPipeLineCache()
 	return res;
 }
 
-bool VulkanPipeline::createGraphicPipeline(const VulkanRenderable* pRenderable, const VulkanPipelineState& pipelineState, VkPipeline& pipeline)
+bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRenderable* pRenderable, const VulkanGraphicPipelineState& pipelineState, VkPipeline& pipeline)
 {
 	VkResult res;
 
@@ -42,7 +43,6 @@ bool VulkanPipeline::createGraphicPipeline(const VulkanRenderable* pRenderable, 
 	dynamicStateInfo.dynamicStateCount = 0;
 	dynamicStates[dynamicStateInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_VIEWPORT;
 	dynamicStates[dynamicStateInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_SCISSOR;
-	dynamicStates[dynamicStateInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_LINE_WIDTH;
 	
 	// vertex input state info
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
@@ -51,7 +51,7 @@ bool VulkanPipeline::createGraphicPipeline(const VulkanRenderable* pRenderable, 
 	vertexInputInfo.flags = 0;
 	vertexInputInfo.vertexBindingDescriptionCount = 1;
 	vertexInputInfo.pVertexBindingDescriptions = &(pRenderable->getVertexBuffer()->getVertexInputBinding());
-	vertexInputInfo.vertexAttributeDescriptionCount = 2;
+	vertexInputInfo.vertexAttributeDescriptionCount = pRenderable->getVertexBuffer()->getVertexInputAttributes().size();
 	vertexInputInfo.pVertexAttributeDescriptions = pRenderable->getVertexBuffer()->getVertexInputAttributes().data();
 
 	// vertex attribute state info
@@ -59,7 +59,7 @@ bool VulkanPipeline::createGraphicPipeline(const VulkanRenderable* pRenderable, 
 	vertexAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	vertexAssemblyInfo.pNext = nullptr;
 	vertexAssemblyInfo.topology = pRenderable->getTopologyType();
-	vertexAssemblyInfo.primitiveRestartEnable = pRenderable->isIndexRestart();
+	vertexAssemblyInfo.primitiveRestartEnable = VK_FALSE; //pRenderable->isIndexRestart();
 
 	// rasterization state info
 	VkPipelineRasterizationStateCreateInfo rasterizationInfo = {};
@@ -78,14 +78,8 @@ bool VulkanPipeline::createGraphicPipeline(const VulkanRenderable* pRenderable, 
 
 	// color blend state info
 	VkPipelineColorBlendAttachmentState blendState = {};
-	blendState.colorWriteMask = 0xf;
+	blendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
 	blendState.blendEnable = VK_FALSE;
-	blendState.alphaBlendOp = VK_BLEND_OP_ADD;
-	blendState.colorBlendOp = VK_BLEND_OP_ADD;
-	blendState.srcColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-	blendState.dstColorBlendFactor = VK_BLEND_FACTOR_ZERO;
-	blendState.srcAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-	blendState.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
 
 	VkPipelineColorBlendStateCreateInfo blendInfo = {};
 	blendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -94,10 +88,24 @@ bool VulkanPipeline::createGraphicPipeline(const VulkanRenderable* pRenderable, 
 	blendInfo.attachmentCount = 1;
 	blendInfo.pAttachments = &blendState;
 	blendInfo.logicOpEnable = VK_FALSE;
-	blendInfo.blendConstants[0] = 1.0;
-	blendInfo.blendConstants[1] = 1.0;
-	blendInfo.blendConstants[2] = 1.0;
-	blendInfo.blendConstants[3] = 1.0;
+	blendInfo.blendConstants[0] = 0.0;
+	blendInfo.blendConstants[1] = 0.0;
+	blendInfo.blendConstants[2] = 0.0;
+	blendInfo.blendConstants[3] = 0.0;
+
+	VkViewport viewport;
+	viewport.height = (float)ANativeWindow_getHeight(pWnd);
+	viewport.width = (float)ANativeWindow_getWidth(pWnd);
+	viewport.minDepth = (float) 0.0f;
+	viewport.maxDepth = (float) 1.0f;
+	viewport.x = 0;
+	viewport.y = 0;
+
+	VkRect2D scissor;
+	scissor.extent.width = ANativeWindow_getWidth(pWnd);
+	scissor.extent.height = ANativeWindow_getHeight(pWnd);
+	scissor.offset.x = 0;
+	scissor.offset.y = 0;
 
 	// viewport state info
 	VkPipelineViewportStateCreateInfo viewportInfo = {};
@@ -106,8 +114,8 @@ bool VulkanPipeline::createGraphicPipeline(const VulkanRenderable* pRenderable, 
 	viewportInfo.flags = 0;
 	viewportInfo.viewportCount = 1;
 	viewportInfo.scissorCount = 1;
-	viewportInfo.pScissors = nullptr;
-	viewportInfo.pViewports = nullptr;
+	viewportInfo.pScissors = &scissor;
+	viewportInfo.pViewports = &viewport;
 
 	// depth & stencile state info
 	VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {};
@@ -135,13 +143,19 @@ bool VulkanPipeline::createGraphicPipeline(const VulkanRenderable* pRenderable, 
 	VkPipelineMultisampleStateCreateInfo multisampleInfo = {};
 	multisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	multisampleInfo.pNext = nullptr;
-	multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_16_BIT;
+	multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+	multisampleInfo.sampleShadingEnable = VK_FALSE;
 
 	// pipeline layout info
 	VkPipelineLayout layout;
 	VkPipelineLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	layoutInfo.pNext = nullptr;
+	layoutInfo.setLayoutCount = 0;
+	layoutInfo.pSetLayouts = nullptr;
+	layoutInfo.pushConstantRangeCount = 0;
+	layoutInfo.pPushConstantRanges = nullptr;
+
 	// Todo: more information is about the input shader's parameters
 	res = vkCreatePipelineLayout(m_pDevice->getGraphicDevice(), &layoutInfo, nullptr, &layout);
 
@@ -149,26 +163,30 @@ bool VulkanPipeline::createGraphicPipeline(const VulkanRenderable* pRenderable, 
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	pipelineInfo.pNext = nullptr;
 	pipelineInfo.flags = 0;
-	pipelineInfo.basePipelineHandle = 0;
-	pipelineInfo.basePipelineIndex = 0;
+	//pipelineInfo.basePipelineHandle = 0;
+	//pipelineInfo.basePipelineIndex = 0;
 	pipelineInfo.pVertexInputState = &vertexInputInfo;
 	pipelineInfo.pInputAssemblyState = &vertexAssemblyInfo;
 	pipelineInfo.pRasterizationState = &rasterizationInfo;
 	pipelineInfo.pColorBlendState = &blendInfo;
-	// need to check the VulkanRenderable's tessellation control and evaluation program
 
-	pipelineInfo.pDynamicState = &dynamicStateInfo;
+	//pipelineInfo.pDynamicState = &dynamicStateInfo;
 	pipelineInfo.pViewportState = &viewportInfo;
 	pipelineInfo.pDepthStencilState = &depthStencilInfo;
 	pipelineInfo.pMultisampleState = &multisampleInfo;
 
-	//pipelineInfo.pStages = ;
-	//pipelineInfo.stageCount = ;
-	//pipelineInfo.renderPass = ;
-	//pipelineInfo.subpass = 0;
+	// This step needs to optimize use like std::array, and the preallocate size can be 5
+	std::vector<VkPipelineShaderStageCreateInfo> activeShaderStagesInfo;
+	pRenderable->getShaderStageInfo(activeShaderStagesInfo);
+	pipelineInfo.pStages = activeShaderStagesInfo.data();
+	pipelineInfo.stageCount = activeShaderStagesInfo.size();
+
+	pipelineInfo.renderPass = pipelineState.activeRenderPass;
+	pipelineInfo.subpass = 0;
 
 	// pipeline layout 
-	//pipelineInfo.layout = ;
+	pipelineInfo.layout = layout;
+
 	res = vkCreateGraphicsPipelines(m_pDevice->getGraphicDevice(), m_pipelineCache, 1, &pipelineInfo, nullptr, &pipeline);
 	assert(res == VK_SUCCESS);
 	return res == VK_SUCCESS;

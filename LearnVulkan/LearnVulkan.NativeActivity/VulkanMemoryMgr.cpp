@@ -15,10 +15,10 @@ bool VulkanMemoryMgr::memoryTypeFromProperties(const VkPhysicalDevice* pGPU, uin
 {
 	if (pGPU)
 	{
-		VkPhysicalDeviceMemoryProperties gpuMemoryProperties;
+		VkPhysicalDeviceMemoryProperties gpuMemoryProperties = {};
 		vkGetPhysicalDeviceMemoryProperties(*pGPU, &gpuMemoryProperties);
 
-		for (uint32_t i = 0; i < 32; i++)
+		for (uint32_t i = 0; i < gpuMemoryProperties.memoryTypeCount; i++)
 		{
 			if ((typeBits & 1) == 1)
 			{

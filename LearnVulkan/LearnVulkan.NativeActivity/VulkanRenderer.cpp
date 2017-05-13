@@ -4,10 +4,17 @@
 #include "VulkanSwapChain.h"
 #include "VulkanMemoryMgr.h"
 #include "VkCommandBufferMgr.h"
+#include "VulkanPipeline.h"
+#include "VulkanPipelineState.h"
+#include "VulkanGpuProgram.h"
+#include "VulkanHardwareVertexBuffer.h"
+#include "VulkanRenderable.h"
 
-VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice) : m_pGraphicDevice(pDevice), m_pInstance(pInstance), m_pWnd(nullptr)
+VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice) : m_pGraphicDevice(pDevice), m_pInstance(pInstance), m_pWnd(nullptr), m_pPipeline(nullptr)
 {
 	m_pSwapChain = new VulkanSwapChain(m_pInstance, m_pGraphicDevice);
+	m_pPipeline = new VulkanPipeline(pDevice);
+	m_pPipeline->createPipeLineCache();
 
 	// present semaphore
 	VkSemaphoreCreateInfo presentSemaphoreInfo = {};
@@ -45,6 +52,7 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 		return false;
 	m_pWnd = pWnd;
 
+	bool isDepthBuffer = true;
 	bool isOk = false;
 
 	if (m_pSwapChain)
@@ -53,17 +61,66 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 	if (isOk)
 		isOk = createCmdPool();
 
-	if (isOk)
+	if (isOk && isDepthBuffer)
 		isOk = createDepthBuffer(pWnd);
 
 	if (isOk)
-		isOk = createRenderPass(true);
+		isOk = createRenderPass(isDepthBuffer);
 
 	if(isOk)
-		isOk = createFrameBuffer(pWnd, true);
+		isOk = createFrameBuffer(pWnd, isDepthBuffer);
+
+	// Maybe a bug of the driver, put the vertex data behind the program will cause crash
+	const float vertexData[] = { 0.0f, -0.5f, 0.0f, 1.0f, 
+		                          1.0f, 0.0f, 0.0f, 1.0f,
+		                          0.5f, 0.5f, 0.0f, 1.0f, 
+		                          0.0f, 0.0f, 1.0f, 1.0f,
+		                         -0.5f, 0.5f, 0.0f, 1.0f, 
+		                          0.0f, 1.0f, 0.0f, 1.0f };
+
+	// Only used for testing
+	std::shared_ptr<VulkanHardwareVertexBuffer> vertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(m_pGraphicDevice->getGPU(), m_pGraphicDevice->getGraphicDevice(),
+		(void*)vertexData, sizeof(float) * 3 * 8, sizeof(float) * 8);
+
+	const std::string vertShaderText = 
+		"#version 450\n"
+		"layout(location = 0) in vec4 pos;\n"
+		"layout(location = 1) in vec4 i_Color;\n"
+		"layout(location = 0) out vec4 v_color;\n"
+		"void main() {\n"
+		"   v_color = i_Color;\n"
+		"   gl_Position = pos;\n"
+		"}\n";
+
+	std::shared_ptr<VulkanGpuProgram> vertexShaderProg = std::make_shared<VulkanGpuProgram>(m_pGraphicDevice->getGraphicDevice(),
+		"vertexshader.vert", shaderc_glsl_vertex_shader, vertShaderText);
+
+	const std::string fragShaderText = 
+		"#version 450\n"
+		"layout(location = 0) in vec4 v_Color;\n"
+		"layout(location = 0) out vec4 fragColor;\n"
+		"void main() {\n"
+		"   fragColor = v_Color;\n"
+		"}\n";
+
+	std::shared_ptr<VulkanGpuProgram> fragShaderProg = std::make_shared<VulkanGpuProgram>(m_pGraphicDevice->getGraphicDevice(),
+		"fragshader.vert", shaderc_glsl_fragment_shader, fragShaderText);
+
+	VulkanRenderable* renderEntity = new VulkanRenderable;
+	renderEntity->setVertexBuffer(vertexBuffer);
+	renderEntity->setVertexShader(vertexShaderProg);
+	renderEntity->setFragmentShader(fragShaderProg);
+	renderEntity->setTopologyType(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+	VulkanGraphicPipelineState pipelineState;
+	pipelineState.activeRenderPass = m_renderPass;
+	VkPipeline renderPipeline = VK_NULL_HANDLE;
+	m_pPipeline->createGraphicPipeline(pWnd, renderEntity, pipelineState, renderPipeline);
+
+	addRenderable(renderEntity, renderPipeline);
 
 	if (isOk)
-		isOk = createCommandBuffers(true);
+		isOk = createCommandBuffers(false);
 	
 	return isOk;
 }
@@ -218,9 +275,7 @@ void VulkanRenderer::render()
 	submitInfo.pSignalSemaphores = &m_drawCompleteSemaphore;
 
 	// queue the command buffer for execution
-	vkQueueSubmit(m_pGraphicDevice->getGraphicQueue(), 1, &submitInfo, VK_NULL_HANDLE);
-
-	//VkCommandBufferMgr::get()->submitCommandBuffer(m_pGraphicDevice->getGraphicQueue(), &m_cmdDraws[activeColorBufferId], &submitInfo);
+	VkCommandBufferMgr::get()->submitCommandBuffer(m_pGraphicDevice->getGraphicQueue(), &m_cmdDraws[activeColorBufferId], &submitInfo);
 
 	// present the image in the window
 	VkPresentInfoKHR present = {};
@@ -247,6 +302,11 @@ void VulkanRenderer::render()
 	assert(res == VK_SUCCESS);
 }
 
+void VulkanRenderer::addRenderable(VulkanRenderable * renderEntity, const VkPipeline & pipeline)
+{
+	m_renderEntityInfo.emplace_back(std::make_pair(renderEntity, pipeline));
+}
+
 bool VulkanRenderer::reInit()
 {
 	vkDeviceWaitIdle(m_pGraphicDevice->getGraphicDevice());
@@ -270,8 +330,7 @@ bool VulkanRenderer::createRenderPass(bool includeDepth, bool clear /*=true*/)
 	attachments[0].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
 	attachments[0].stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
 	attachments[0].initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	attachments[0].finalLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	//attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	attachments[0].finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
 	attachments[0].flags = 0;
 
 	if (includeDepth) 
@@ -366,36 +425,36 @@ bool VulkanRenderer::createCommandBuffers(bool includeDepth)
 	{
 		VkCommandBuffer cmdBuffer;
 		res = VkCommandBufferMgr::get()->createCommandBuffer(&m_pGraphicDevice->getGraphicDevice(), m_cmdPool, &cmdBuffer);
-		VkClearValue clearValues;
+		VkClearValue clearValues[2] ;
 		switch (i)
 		{
 		case 0:
-			clearValues.color.float32[0] = 1.0f;
-			clearValues.color.float32[1] = 0.0f;
-			clearValues.color.float32[2] = 0.0f;
-			clearValues.color.float32[3] = 1.0f;
+			clearValues[0].color.float32[0] = 1.0f;
+			clearValues[0].color.float32[1] = 0.0f;
+			clearValues[0].color.float32[2] = 0.0f;
+			clearValues[0].color.float32[3] = 1.0f;
 			break;
 		case 1:
-			clearValues.color.float32[0] = 0.0f;
-			clearValues.color.float32[1] = 1.0f;
-			clearValues.color.float32[2] = 0.0f;
-			clearValues.color.float32[3] = 1.0f;
+			clearValues[0].color.float32[0] = 0.0f;
+			clearValues[0].color.float32[1] = 1.0f;
+			clearValues[0].color.float32[2] = 0.0f;
+			clearValues[0].color.float32[3] = 1.0f;
 			break;
 		case 2:
-			clearValues.color.float32[0] = 0.0f;
-			clearValues.color.float32[1] = 0.0f;
-			clearValues.color.float32[2] = 1.0f;
-			clearValues.color.float32[3] = 1.0f;
+			clearValues[0].color.float32[0] = 0.0f;
+			clearValues[0].color.float32[1] = 0.0f;
+			clearValues[0].color.float32[2] = 1.0f;
+			clearValues[0].color.float32[3] = 1.0f;
 			break;
 		default:
-			clearValues.color.float32[0] = 0.0f;
-			clearValues.color.float32[1] = 0.0f;
-			clearValues.color.float32[2] = 0.0f;
-			clearValues.color.float32[3] = 1.0f;
+			clearValues[0].color.float32[0] = 0.0f;
+			clearValues[0].color.float32[1] = 1.0f;
+			clearValues[0].color.float32[2] = 0.0f;
+			clearValues[0].color.float32[3] = 0.0f;
 		}
 
-		clearValues.depthStencil.depth = 1.0f;
-		clearValues.depthStencil.stencil = 0;
+		clearValues[1].depthStencil.depth = 1.0f;
+		clearValues[1].depthStencil.stencil = 0;
 
 		VkRenderPassBeginInfo renderPassBeginInfo = {};
 		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
@@ -407,15 +466,28 @@ bool VulkanRenderer::createCommandBuffers(bool includeDepth)
 		renderPassBeginInfo.renderArea.extent.width = ANativeWindow_getWidth(m_pWnd);
 		renderPassBeginInfo.renderArea.extent.height = ANativeWindow_getHeight(m_pWnd);
 		renderPassBeginInfo.clearValueCount = includeDepth ? 2 : 1;
-		renderPassBeginInfo.pClearValues = &clearValues;
+		renderPassBeginInfo.pClearValues = clearValues;
 
 		res = VkCommandBufferMgr::get()->beginCommandBuffer(&cmdBuffer);
 
 		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 
+		// record the static renderable
+		for(auto rRenderInfo : m_renderEntityInfo)
+		{
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rRenderInfo.second);
+
+			// create the bind vertex buffer
+			VkDeviceSize offset[1] = { 0 };
+			vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &(rRenderInfo.first->getVertexBuffer()->getVertexBuffer()), offset);
+
+			// draw the buffer
+			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+		}
+
 		vkCmdEndRenderPass(cmdBuffer);
 
-		VkCommandBufferMgr::get()->endCommandBuffer(&cmdBuffer);
+		res = VkCommandBufferMgr::get()->endCommandBuffer(&cmdBuffer);
 
 		m_cmdDraws[i] = cmdBuffer;
 	}

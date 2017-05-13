@@ -1,10 +1,14 @@
 #pragma once
 #include "common\vulkan_wrapper.h"
+#include <memory>
 #include <vector>
+#include <queue>
 
 class VulkanSwapChain;
 class VulkanDevice;
 class VulkanInstance;
+class VulkanRenderable;
+class VulkanPipeline;
 
 class VulkanRenderer
 {
@@ -22,12 +26,15 @@ public:
 	bool createCommandBuffers(bool includeDepth);
 	void render();
 
+	void addRenderable(VulkanRenderable* renderEntity, const VkPipeline& pipeline);
+
 protected:
 	bool reInit();
 private:
 	VulkanSwapChain* m_pSwapChain;
 	VulkanDevice* m_pGraphicDevice;
 	VulkanInstance* m_pInstance;
+	VulkanPipeline* m_pPipeline;
 
 	VkFence m_renderFence;
 	VkCommandPool m_cmdPool;
@@ -43,4 +50,6 @@ private:
 
 	VkSemaphore m_presentCompleteSemaphore;
 	VkSemaphore m_drawCompleteSemaphore;
+
+	std::vector<std::pair<VulkanRenderable*, VkPipeline>> m_renderEntityInfo;
 };

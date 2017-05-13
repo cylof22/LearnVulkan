@@ -8,38 +8,33 @@ VulkanGpuProgram::VulkanGpuProgram(const VkDevice& graphicDevice, const std::str
 	shaderc::Compiler compiler;
 	shaderc::CompileOptions options;
 
-	// Like -DMY_DEFINE=1
-	options.AddMacroDefinition("MY_DEFINE", "1");
-
 	shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(
 		data.c_str(), data.size(), kind, fileName.c_str(), options);
 
-	if (module.GetCompilationStatus() !=
-		shaderc_compilation_status_success) {
-		std::cerr << module.GetErrorMessage();
+	shaderc_compilation_status compileRes = module.GetCompilationStatus();
+	if (compileRes == shaderc_compilation_status_success) {
+		std::vector<uint32_t> result(module.cbegin(), module.cend());
+
+		VkResult res;
+		// create the shaderModule
+		VkShaderModuleCreateInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+		info.pNext = nullptr;
+		info.flags = 0;
+		info.codeSize = result.size() * sizeof(uint32_t);
+		info.pCode = result.data();
+
+		VkShaderModule shaderModule = VK_NULL_HANDLE;
+		res = vkCreateShaderModule(graphicDevice, &info, nullptr, &shaderModule);
+
+		m_shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+		m_shaderStage.pNext = nullptr;
+		m_shaderStage.flags = 0;
+		m_shaderStage.pSpecializationInfo = nullptr;
+		m_shaderStage.pName = "main";
+		m_shaderStage.stage = convertShaderType2ShaderStageFlag(kind);
+		m_shaderStage.module = shaderModule;
 	}
-
-	std::vector<uint32_t> result(module.cbegin(), module.cend());
-
-	VkResult res;
-	// create the shaderModule
-	VkShaderModuleCreateInfo info = {};
-	info.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
-	info.pNext = nullptr;
-	info.flags = 0;
-	info.codeSize = result.size() * sizeof(uint32_t);
-	info.pCode = result.data();
-
-	VkShaderModule shaderModule = VK_NULL_HANDLE;
-	res = vkCreateShaderModule(graphicDevice, &info, nullptr, &shaderModule);
-
-	m_shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-	m_shaderStage.pNext = nullptr;
-	m_shaderStage.flags = 0;
-	m_shaderStage.pSpecializationInfo = nullptr;
-	m_shaderStage.pName = "main";
-	m_shaderStage.stage = convertShaderType2ShaderStageFlag(kind);
-	m_shaderStage.module = shaderModule;
 } 
 
 VulkanGpuProgram::~VulkanGpuProgram()
@@ -75,6 +70,7 @@ VkShaderStageFlagBits VulkanGpuProgram::convertShaderType2ShaderStageFlag(const 
 	case shaderc_glsl_fragment_shader:
 	case shaderc_glsl_default_fragment_shader:
 		shaderFlag = VK_SHADER_STAGE_FRAGMENT_BIT;
+		break;
 	case shaderc_glsl_compute_shader:
 	case shaderc_glsl_default_compute_shader:
 		shaderFlag = VK_SHADER_STAGE_COMPUTE_BIT;

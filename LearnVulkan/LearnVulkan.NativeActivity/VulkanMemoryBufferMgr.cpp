@@ -23,7 +23,7 @@ VulkanMemoryBufferMgr * VulkanMemoryBufferMgr::get()
 	return m_pMgr;
 }
 
-bool VulkanMemoryBufferMgr::createVertexBuffer(const VkPhysicalDevice& rGPU, const VkDevice& device, const void * pVertexData, uint32_t vertexSize, uint32_t stride,
+bool VulkanMemoryBufferMgr::createVertexBuffer(const VkPhysicalDevice* rGPU, const VkDevice& device, const void * pVertexData, uint32_t vertexSize, uint32_t stride,
 	VkBuffer& vertexBuffer, VkDeviceMemory& vertexMemory)
 {
 	VkResult res;
@@ -48,7 +48,7 @@ bool VulkanMemoryBufferMgr::createVertexBuffer(const VkPhysicalDevice& rGPU, con
 	allocInfo.memoryTypeIndex = 0;
 	allocInfo.allocationSize = memRequires.size;
 
-	bool isOk = VulkanMemoryMgr::get()->memoryTypeFromProperties(&rGPU, memRequires.memoryTypeBits, 
+	bool isOk = VulkanMemoryMgr::get()->memoryTypeFromProperties(rGPU, memRequires.memoryTypeBits, 
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, allocInfo.memoryTypeIndex);
 
 	if (isOk)

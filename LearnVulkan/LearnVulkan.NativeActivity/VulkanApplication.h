@@ -20,6 +20,8 @@ public:
 	const VulkanInstance* getVulkanInstance() { return m_pInstance; }
 
 	VulkanRenderer* getRender() { return m_pRender; }
+
+	VulkanDevice* getDevice() { return m_pDevice; }
 private:
 	VulkanInstance* m_pInstance;
 	VulkanDevice* m_pDevice;
