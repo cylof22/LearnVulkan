@@ -71,12 +71,12 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 		isOk = createFrameBuffer(pWnd, isDepthBuffer);
 
 	// Maybe a bug of the driver, put the vertex data behind the program will cause crash
-	const float vertexData[] = { 0.0f, -0.5f, 0.0f, 1.0f, 
-		                          1.0f, 0.0f, 0.0f, 1.0f,
-		                          0.5f, 0.5f, 0.0f, 1.0f, 
-		                          0.0f, 0.0f, 1.0f, 1.0f,
-		                         -0.5f, 0.5f, 0.0f, 1.0f, 
-		                          0.0f, 1.0f, 0.0f, 1.0f };
+	const float vertexData[] = { 0.0f, -0.5f, 0.0f, 1.0f,
+								  1.0f, 0.0f, 0.0f, 1.0f,
+								  0.5f, 0.5f, 0.0f, 1.0f,
+								  0.0f, 0.0f, 1.0f, 1.0f,
+								 -0.5f, 0.5f, 0.0f, 1.0f,
+								  0.0f, 1.0f, 0.0f, 1.0f };
 
 	// Only used for testing
 	std::shared_ptr<VulkanHardwareVertexBuffer> vertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(m_pGraphicDevice->getGPU(), m_pGraphicDevice->getGraphicDevice(),
