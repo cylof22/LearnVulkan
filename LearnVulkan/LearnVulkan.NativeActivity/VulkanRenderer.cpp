@@ -8,6 +8,7 @@
 #include "VulkanPipelineState.h"
 #include "VulkanGpuProgram.h"
 #include "VulkanHardwareVertexBuffer.h"
+#include "VulkanHardwareIndexBuffer.h"
 #include "VulkanRenderable.h"
 
 VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice) : m_pGraphicDevice(pDevice), m_pInstance(pInstance), m_pWnd(nullptr), m_pPipeline(nullptr)
@@ -76,11 +77,17 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 								  0.5f, 0.5f, 0.0f, 1.0f,
 								  0.0f, 0.0f, 1.0f, 1.0f,
 								 -0.5f, 0.5f, 0.0f, 1.0f,
-								  0.0f, 1.0f, 0.0f, 1.0f };
+								  0.0f, 1.0f, 0.0f, 1.0f,
+								 -1.0f, -0.5f, 0.0f, 1.0f,
+								  1.0f, 1.0f, 0.0f, 0.0f };
 
 	// Only used for testing
 	std::shared_ptr<VulkanHardwareVertexBuffer> vertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(m_pGraphicDevice->getGPU(), m_pGraphicDevice->getGraphicDevice(),
-		(void*)vertexData, sizeof(float) * 3 * 8, sizeof(float) * 8);
+		(void*)vertexData, sizeof(float) * 4 * 8, sizeof(float) * 8);
+
+	const uint16_t indexData[] = { 0, 1, 2, 3, 0, 2 };
+	std::shared_ptr<VulkanHardwareIndexBuffer> indexBuffer = std::make_shared<VulkanHardwareIndexBuffer>(m_pGraphicDevice->getGPU(), m_pGraphicDevice->getGraphicDevice(),
+		(void*)indexData, sizeof(uint16_t) * 6);
 
 	const std::string vertShaderText = 
 		"#version 450\n"
@@ -108,6 +115,7 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 
 	VulkanRenderable* renderEntity = new VulkanRenderable;
 	renderEntity->setVertexBuffer(vertexBuffer);
+	renderEntity->setIndexBuffer(indexBuffer);
 	renderEntity->setVertexShader(vertexShaderProg);
 	renderEntity->setFragmentShader(fragShaderProg);
 	renderEntity->setTopologyType(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
@@ -480,9 +488,10 @@ bool VulkanRenderer::createCommandBuffers(bool includeDepth)
 			// create the bind vertex buffer
 			VkDeviceSize offset[1] = { 0 };
 			vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &(rRenderInfo.first->getVertexBuffer()->getVertexBuffer()), offset);
-
+			vkCmdBindIndexBuffer(cmdBuffer, rRenderInfo.first->getIndexBuffer()->getBuffer(), *offset, VK_INDEX_TYPE_UINT16);
 			// draw the buffer
-			vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+			//vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
+			vkCmdDrawIndexed(cmdBuffer, 6, 1, 0, 0, 0);
 		}
 
 		vkCmdEndRenderPass(cmdBuffer);
