@@ -13,7 +13,7 @@ public:
 
 	VkResult createPipeLineCache();
 
-	bool createGraphicPipeline(ANativeWindow* pWnd, const VulkanRenderable* pRenderable, const VulkanGraphicPipelineState& pipelineState, VkPipeline& pipeline);
+	bool createGraphicPipeline(ANativeWindow* pWnd, const VulkanRenderable* pRenderable, const VulkanGraphicPipelineState& pipelineState, VkPipeline& pipeline, VkPipelineLayout& layout);
 	bool createComputePipeline();
 	void destroyPipeline(const VkPipeline& pipeline);
 	void destroyPipelineCache(const VkPipelineCache& pipelineCache);

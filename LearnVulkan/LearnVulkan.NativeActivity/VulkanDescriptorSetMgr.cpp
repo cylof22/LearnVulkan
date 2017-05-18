@@ -18,7 +18,7 @@ VulkanDescriptorSetMgr::~VulkanDescriptorSetMgr()
 {
 }
 
-VkResult VulkanDescriptorSetMgr::createDescriptorSetLayout(VkDevice& graphicDevice, const VulkanRenderable* pRenderEntity, std::vector<VkDescriptorSetLayout>& shaderParams)
+VkResult VulkanDescriptorSetMgr::createDescriptorSetLayout(const VkDevice& graphicDevice, const VulkanRenderable* pRenderEntity, std::vector<VkDescriptorSetLayout>& shaderParams)
 {
 	if (pRenderEntity == nullptr)
 		return VK_RESULT_MAX_ENUM;
@@ -66,7 +66,7 @@ VkResult VulkanDescriptorSetMgr::createDescriptorSetLayout(VkDevice& graphicDevi
 	return res;
 }
 
-VkResult VulkanDescriptorSetMgr::createDescriptorSet(VkDevice & graphicDevice, VkDescriptorPool& descriptorPool,  std::vector<VkDescriptorSetLayout>& shaderParams, VkDescriptorSet & shaderDescriptorSet)
+VkResult VulkanDescriptorSetMgr::createDescriptorSet(const VkDevice& graphicDevice, VkDescriptorPool& descriptorPool,  std::vector<VkDescriptorSetLayout>& shaderParams, VkDescriptorSet& shaderDescriptorSet)
 {
 	VkResult res = VK_RESULT_MAX_ENUM;
 	
@@ -81,7 +81,7 @@ VkResult VulkanDescriptorSetMgr::createDescriptorSet(VkDevice & graphicDevice, V
 	return res;
 }
 
-VkResult VulkanDescriptorSetMgr::updateDescriptorSetbyUniformBuffer(VkDevice & graphicDevice, VkDescriptorSet & shaderDescriptorSet, const VkDescriptorBufferInfo & bufferInfo)
+VkResult VulkanDescriptorSetMgr::updateDescriptorSetbyUniformBuffer(const VkDevice& graphicDevice, VkDescriptorSet& shaderDescriptorSet, const VkDescriptorBufferInfo& bufferInfo)
 {
 	VkResult res = VK_RESULT_MAX_ENUM;
 	

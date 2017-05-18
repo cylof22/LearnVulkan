@@ -11,6 +11,7 @@
 #include "VulkanHardwareIndexBuffer.h"
 #include "VulkanHardwareUniformBuffer.h"
 #include "VulkanRenderable.h"
+#include "VulkanDescriptorSetMgr.h"
 #include <glm\glm.hpp>
 #include <glm\gtc\matrix_transform.hpp>
 
@@ -126,7 +127,8 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 	VulkanGraphicPipelineState pipelineState;
 	pipelineState.activeRenderPass = m_renderPass;
 	VkPipeline renderPipeline = VK_NULL_HANDLE;
-	m_pPipeline->createGraphicPipeline(pWnd, renderEntity, pipelineState, renderPipeline);
+	VkPipelineLayout renderPipelineLayout = VK_NULL_HANDLE;
+	m_pPipeline->createGraphicPipeline(pWnd, renderEntity, pipelineState, renderPipeline, renderPipelineLayout);
 
 	glm::mat4 model, view, projection;
 	model = glm::mat4(1.0f);
@@ -140,7 +142,15 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 	std::shared_ptr<VulkanHardwareUniformBuffer> mvpUniformBuffer = std::make_shared<VulkanHardwareUniformBuffer>(m_pGraphicDevice->getGPU(),
 		m_pGraphicDevice->getGraphicDevice(), &mvp, sizeof(mvp));
 
-	addRenderable(renderEntity, renderPipeline);
+	std::vector<VkDescriptorSetLayout> shaderParams;
+	VulkanDescriptorSetMgr::get()->createDescriptorSetLayout(m_pGraphicDevice->getGraphicDevice(), renderEntity, shaderParams);
+
+	VkDescriptorSet renderDescriptorSet;
+	VulkanDescriptorSetMgr::get()->createDescriptorSet(m_pGraphicDevice->getGraphicDevice(), m_descriptorPool, shaderParams, renderDescriptorSet);
+
+	renderEntity->setDescriptorSet(renderDescriptorSet);
+
+	addRenderable(renderEntity, renderPipeline, renderPipelineLayout);
 
 	if (isOk)
 		isOk = createCommandBuffers(false);
@@ -162,6 +172,29 @@ bool VulkanRenderer::createCmdPool()
 		return res == VK_SUCCESS;
 	}
 	return false;
+}
+
+bool VulkanRenderer::createDescriptorPool()
+{
+	VkResult res = VK_RESULT_MAX_ENUM;
+
+	VkDescriptorPoolSize descriptorPools[2];
+
+	descriptorPools[0].type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	descriptorPools[0].descriptorCount = 1;
+
+	descriptorPools[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	descriptorPools[1].descriptorCount = 1;
+
+	VkDescriptorPoolCreateInfo info = {};
+	info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+	info.pNext = nullptr;
+	info.maxSets = 1;
+	info.poolSizeCount = 2;
+	info.pPoolSizes = descriptorPools;
+
+	res = vkCreateDescriptorPool(m_pGraphicDevice->getGraphicDevice(), &info, nullptr, &m_descriptorPool);
+	return res = VK_SUCCESS;
 }
 
 bool VulkanRenderer::createSwapChain(ANativeWindow* pWnd)
@@ -325,9 +358,9 @@ void VulkanRenderer::render()
 	assert(res == VK_SUCCESS);
 }
 
-void VulkanRenderer::addRenderable(VulkanRenderable * renderEntity, const VkPipeline & pipeline)
+void VulkanRenderer::addRenderable(VulkanRenderable * renderEntity, const VkPipeline & pipeline, const VkPipelineLayout& layout)
 {
-	m_renderEntityInfo.emplace_back(std::make_pair(renderEntity, pipeline));
+	m_renderEntityInfo.emplace_back(std::make_tuple(renderEntity, pipeline, layout));
 }
 
 bool VulkanRenderer::reInit()
@@ -498,12 +531,14 @@ bool VulkanRenderer::createCommandBuffers(bool includeDepth)
 		// record the static renderable
 		for(auto rRenderInfo : m_renderEntityInfo)
 		{
-			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, rRenderInfo.second);
+			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, std::get<1>(rRenderInfo));
 
 			// create the bind vertex buffer
 			VkDeviceSize offset[1] = { 0 };
-			vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &(rRenderInfo.first->getVertexBuffer()->getVertexBuffer()), offset);
-			vkCmdBindIndexBuffer(cmdBuffer, rRenderInfo.first->getIndexBuffer()->getBuffer(), *offset, VK_INDEX_TYPE_UINT16);
+			vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &(std::get<0>(rRenderInfo)->getVertexBuffer()->getVertexBuffer()), offset);
+			vkCmdBindIndexBuffer(cmdBuffer, std::get<0>(rRenderInfo)->getIndexBuffer()->getBuffer(), *offset, VK_INDEX_TYPE_UINT16);
+
+			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, std::get<2>(rRenderInfo), 0, 1, std::get<0>(rRenderInfo)->getDescriptorSet(), 0, nullptr);
 			// draw the buffer
 			//vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
 			vkCmdDrawIndexed(cmdBuffer, 6, 1, 0, 0, 0);

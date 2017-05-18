@@ -28,7 +28,8 @@ VkResult VulkanPipeline::createPipeLineCache()
 	return res;
 }
 
-bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRenderable* pRenderable, const VulkanGraphicPipelineState& pipelineState, VkPipeline& pipeline)
+bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRenderable* pRenderable, const VulkanGraphicPipelineState& pipelineState, 
+	VkPipeline& pipeline, VkPipelineLayout& layout)
 {
 	VkResult res;
 
@@ -147,12 +148,11 @@ bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRend
 	multisampleInfo.sampleShadingEnable = VK_FALSE;
 
 	// pipeline layout info
-	VkPipelineLayout layout;
 	VkPipelineLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	layoutInfo.pNext = nullptr;
-	layoutInfo.setLayoutCount = 0;
-	layoutInfo.pSetLayouts = nullptr;
+	layoutInfo.setLayoutCount = pRenderable->getDescriptorSetLayout().size();
+	layoutInfo.pSetLayouts = pRenderable->getDescriptorSetLayout().data();
 	layoutInfo.pushConstantRangeCount = 0;
 	layoutInfo.pPushConstantRanges = nullptr;
 

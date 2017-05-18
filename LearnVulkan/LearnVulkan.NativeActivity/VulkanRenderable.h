@@ -19,9 +19,14 @@ public:
 	void setVertexShader(std::shared_ptr<VulkanGpuProgram> vertexShader) { m_rVertexShader = vertexShader; }
 	void setFragmentShader(std::shared_ptr<VulkanGpuProgram> fragShader) { m_rFragmentShader = fragShader; }
 	void setTopologyType(const VkPrimitiveTopology type) { m_topologyType = type; }
-
+	
 	std::shared_ptr<VulkanGpuProgram> getVertexShader() const { return m_rVertexShader; }
 	std::shared_ptr<VulkanGpuProgram> getFragmentShader() const { return m_rFragmentShader; }
+
+	void setDescriptorSet(const VkDescriptorSet& descriptorSet) { m_descriptorSet = descriptorSet; }
+	void setDescriptorSetLayout(const std::vector<VkDescriptorSetLayout> descriptorSetLayouts) { m_descriptorSetLayouts = descriptorSetLayouts; }
+	const VkDescriptorSet* getDescriptorSet() const { return &m_descriptorSet; }
+	const std::vector<VkDescriptorSetLayout>& getDescriptorSetLayout() const { return m_descriptorSetLayouts; }
 
 	const std::shared_ptr<VulkanHardwareVertexBuffer> getVertexBuffer() const { return m_rVertexBuf; }
 	const std::shared_ptr<VulkanHardwareIndexBuffer> getIndexBuffer() const { return m_rIndexBuf; }
@@ -42,4 +47,7 @@ private:
 	std::shared_ptr<VulkanGpuProgram> m_rTesslleationEvalutionShader;
 	std::shared_ptr<VulkanGpuProgram> m_rGeometryShader;
 	std::shared_ptr<VulkanGpuProgram> m_rFragmentShader;
+
+	VkDescriptorSet m_descriptorSet;
+	std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
 };

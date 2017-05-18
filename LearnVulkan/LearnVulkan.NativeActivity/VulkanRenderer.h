@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <queue>
+#include <tuple>
 
 class VulkanSwapChain;
 class VulkanDevice;
@@ -19,6 +20,7 @@ public:
 	bool init(ANativeWindow* pWnd);
 
 	bool createCmdPool();
+	bool createDescriptorPool();
 	bool createSwapChain(ANativeWindow* pWnd);
 	bool createDepthBuffer(ANativeWindow* pWnd);
 	bool createRenderPass(bool includeDepth, bool clear = true);
@@ -26,7 +28,7 @@ public:
 	bool createCommandBuffers(bool includeDepth);
 	void render();
 
-	void addRenderable(VulkanRenderable* renderEntity, const VkPipeline& pipeline);
+	void addRenderable(VulkanRenderable* renderEntity, const VkPipeline& pipeline, const VkPipelineLayout& layout);
 
 protected:
 	bool reInit();
@@ -40,6 +42,8 @@ private:
 	VkCommandPool m_cmdPool;
 	VkRenderPass m_renderPass;
 
+	VkDescriptorPool m_descriptorPool;
+
 	std::vector<VkFramebuffer> m_framebuffers;
 	std::vector<VkCommandBuffer> m_cmdDraws;
 
@@ -51,5 +55,5 @@ private:
 	VkSemaphore m_presentCompleteSemaphore;
 	VkSemaphore m_drawCompleteSemaphore;
 
-	std::vector<std::pair<VulkanRenderable*, VkPipeline>> m_renderEntityInfo;
+	std::vector<std::tuple<VulkanRenderable*, VkPipeline, VkPipelineLayout>> m_renderEntityInfo;
 };
