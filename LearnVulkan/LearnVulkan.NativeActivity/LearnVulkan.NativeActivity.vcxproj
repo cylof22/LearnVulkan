@@ -222,6 +222,7 @@
     <ClInclude Include="Include\vulkan\vulkan.h" />
     <ClInclude Include="pch.h" />
     <ClInclude Include="android_native_app_glue.h" />
+    <ClInclude Include="VulkanDescriptorSetMgr.h" />
     <ClInclude Include="VulkanHardwareUniformBuffer.h" />
     <ClInclude Include="VulkanMemoryMgr.h" />
     <ClInclude Include="VkCommandBufferMgr.h" />
@@ -243,6 +244,7 @@
     <ClCompile Include="android_native_app_glue.c" />
     <ClCompile Include="common\vulkan_wrapper.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="VulkanDescriptorSetMgr.cpp" />
     <ClCompile Include="VulkanHardwareUniformBuffer.cpp" />
     <ClCompile Include="VulkanMemoryMgr.cpp" />
     <ClCompile Include="VkCommandBufferMgr.cpp" />
