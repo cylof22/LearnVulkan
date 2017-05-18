@@ -9,7 +9,10 @@
 #include "VulkanGpuProgram.h"
 #include "VulkanHardwareVertexBuffer.h"
 #include "VulkanHardwareIndexBuffer.h"
+#include "VulkanHardwareUniformBuffer.h"
 #include "VulkanRenderable.h"
+#include <glm\glm.hpp>
+#include <glm\gtc\matrix_transform.hpp>
 
 VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice) : m_pGraphicDevice(pDevice), m_pInstance(pInstance), m_pWnd(nullptr), m_pPipeline(nullptr)
 {
@@ -124,6 +127,18 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 	pipelineState.activeRenderPass = m_renderPass;
 	VkPipeline renderPipeline = VK_NULL_HANDLE;
 	m_pPipeline->createGraphicPipeline(pWnd, renderEntity, pipelineState, renderPipeline);
+
+	glm::mat4 model, view, projection;
+	model = glm::mat4(1.0f);
+	projection = glm::perspective(glm::radians(45.f), 1.f, 0.1f, 100.f);
+	model = glm::lookAt(glm::vec3(10.f, 3.f, 10.f),
+		glm::vec3(0.f, 0.f, 0.f),
+		glm::vec3(0.f, -1.f, 0.f));
+
+	glm::mat4 mvp = projection * view * model;
+
+	std::shared_ptr<VulkanHardwareUniformBuffer> mvpUniformBuffer = std::make_shared<VulkanHardwareUniformBuffer>(m_pGraphicDevice->getGPU(),
+		m_pGraphicDevice->getGraphicDevice(), &mvp, sizeof(mvp));
 
 	addRenderable(renderEntity, renderPipeline);
 

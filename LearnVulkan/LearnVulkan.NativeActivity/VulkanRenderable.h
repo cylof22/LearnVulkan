@@ -20,10 +20,12 @@ public:
 	void setFragmentShader(std::shared_ptr<VulkanGpuProgram> fragShader) { m_rFragmentShader = fragShader; }
 	void setTopologyType(const VkPrimitiveTopology type) { m_topologyType = type; }
 
+	std::shared_ptr<VulkanGpuProgram> getVertexShader() { return m_rVertexShader; }
+	std::shared_ptr<VulkanGpuProgram> getFragmentShader() { return m_rFragmentShader; }
+
 	const std::shared_ptr<VulkanHardwareVertexBuffer> getVertexBuffer() const { return m_rVertexBuf; }
 	const std::shared_ptr<VulkanHardwareIndexBuffer> getIndexBuffer() const { return m_rIndexBuf; }
 
-	
 	VkPrimitiveTopology getTopologyType() const { return m_topologyType; };
 	bool isIndexRestart() const { return m_bIsIndexRestart; }
 

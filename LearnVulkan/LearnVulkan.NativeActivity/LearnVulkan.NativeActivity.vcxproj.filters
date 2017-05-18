@@ -36,6 +36,7 @@
     <ClInclude Include="VulkanPipelineState.h" />
     <ClInclude Include="VulkanMemoryBufferMgr.h" />
     <ClInclude Include="VulkanMemoryMgr.h" />
+    <ClInclude Include="VulkanHardwareUniformBuffer.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
@@ -57,6 +58,7 @@
     <ClCompile Include="VulkanGpuProgram.cpp" />
     <ClCompile Include="VulkanMemoryBufferMgr.cpp" />
     <ClCompile Include="VulkanMemoryMgr.cpp" />
+    <ClCompile Include="VulkanHardwareUniformBuffer.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
