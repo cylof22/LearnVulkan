@@ -5,6 +5,7 @@
 #include "VulkanRenderable.h"
 #include "VulkanHardwareVertexBuffer.h"
 #include "VulkanPipelineState.h"
+#include <glm\glm.hpp>
 
 VulkanPipeline::VulkanPipeline(VulkanDevice * pDevice) : m_pDevice(pDevice)
 {
@@ -147,14 +148,20 @@ bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRend
 	multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 	multisampleInfo.sampleShadingEnable = VK_FALSE;
 
+	// push-constant info
+	VkPushConstantRange mvpPushRange;
+	mvpPushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+	mvpPushRange.offset = 0;
+	mvpPushRange.size = sizeof(glm::mat4);
+
 	// pipeline layout info
 	VkPipelineLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	layoutInfo.pNext = nullptr;
-	layoutInfo.setLayoutCount = pRenderable->getDescriptorSetLayout().size();
+	layoutInfo.setLayoutCount = 0;// pRenderable->getDescriptorSetLayout().size();
 	layoutInfo.pSetLayouts = pRenderable->getDescriptorSetLayout().data();
-	layoutInfo.pushConstantRangeCount = 0;
-	layoutInfo.pPushConstantRanges = nullptr;
+	layoutInfo.pushConstantRangeCount = 1;
+	layoutInfo.pPushConstantRanges = &mvpPushRange;
 
 	// Todo: more information is about the input shader's parameters
 	res = vkCreatePipelineLayout(m_pDevice->getGraphicDevice(), &layoutInfo, nullptr, &layout);

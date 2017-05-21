@@ -135,7 +135,7 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 
 	const std::string vertShaderText =
 		"#version 450\n"
-		"layout(std140, binding = 0) uniform mvpBuffer {\n"
+		"layout(push_constant) uniform mvpBuffer {\n"
 		"	mat4 mvp;\n"
 		"} transform;\n"
 		"layout(location = 0) in vec4 pos;\n"
@@ -193,7 +193,7 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 
 	renderEntity->setUniformBuffer(mvpUniformBuffer);
 
-	std::vector<VkDescriptorSetLayout> shaderParams;
+	/*std::vector<VkDescriptorSetLayout> shaderParams;
 	VulkanDescriptorSetMgr::get()->createDescriptorSetLayout(m_pGraphicDevice->getGraphicDevice(), renderEntity, shaderParams);
 
 	VkDescriptorSet renderDescriptorSet;
@@ -202,7 +202,7 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 	VulkanDescriptorSetMgr::get()->updateDescriptorSetbyUniformBuffer(m_pGraphicDevice->getGraphicDevice(), renderDescriptorSet, mvpUniformBuffer->getBuferDesriptorInfo());
 
 	renderEntity->setDescriptorSet(renderDescriptorSet);
-	renderEntity->setDescriptorSetLayout(shaderParams);
+	renderEntity->setDescriptorSetLayout(shaderParams);*/
 
 	VulkanGraphicPipelineState pipelineState;
 	pipelineState.activeRenderPass = m_renderPass;
@@ -650,7 +650,8 @@ void VulkanRenderer::update(bool includeDepth)
 	// record the static renderable
 	for (auto rRenderInfo : m_renderEntityInfo)
 	{
-		std::get<0>(rRenderInfo)->getUniformBuffer()->updateUniformBuffer(activeCmdBuffer, &mvp, sizeof(mvp));
+		//std::get<0>(rRenderInfo)->getUniformBuffer()->updateUniformBuffer(activeCmdBuffer, &mvp, sizeof(mvp));
+		vkCmdPushConstants(activeCmdBuffer, std::get<2>(rRenderInfo), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &mvp);
 
 		vkCmdBindPipeline(activeCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, std::get<1>(rRenderInfo));
 
@@ -659,7 +660,7 @@ void VulkanRenderer::update(bool includeDepth)
 		vkCmdBindVertexBuffers(activeCmdBuffer, 0, 1, &(std::get<0>(rRenderInfo)->getVertexBuffer()->getVertexBuffer()), offset);
 		vkCmdBindIndexBuffer(activeCmdBuffer, std::get<0>(rRenderInfo)->getIndexBuffer()->getBuffer(), *offset, VK_INDEX_TYPE_UINT16);
 
-		vkCmdBindDescriptorSets(activeCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, std::get<2>(rRenderInfo), 0, 1, std::get<0>(rRenderInfo)->getDescriptorSet(), 0, nullptr);
+		//vkCmdBindDescriptorSets(activeCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, std::get<2>(rRenderInfo), 0, 1, std::get<0>(rRenderInfo)->getDescriptorSet(), 0, nullptr);
 		// draw the buffer
 		//vkCmdDraw(cmdBuffer, 6, 1, 0, 0);
 		// synchronize the memory object
