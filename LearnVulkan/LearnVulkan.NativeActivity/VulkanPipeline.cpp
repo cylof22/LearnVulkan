@@ -68,7 +68,7 @@ bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRend
 	rasterizationInfo.pNext = nullptr;
 	rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
 	rasterizationInfo.cullMode = VK_CULL_MODE_BACK_BIT;
-	rasterizationInfo.frontFace = VK_FRONT_FACE_CLOCKWISE;
+	rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
 	rasterizationInfo.depthClampEnable = VK_TRUE;
 	rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
 	rasterizationInfo.depthBiasEnable = VK_FALSE;

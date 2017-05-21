@@ -15,6 +15,8 @@
 #include <glm\glm.hpp>
 #include <glm\gtc\matrix_transform.hpp>
 
+static uint32_t indexSize = 0;
+
 VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice) : m_pGraphicDevice(pDevice), m_pInstance(pInstance),  m_pPipeline(nullptr)
 	, m_pWnd(nullptr), m_activeCommandBufferId(0)
 {
@@ -113,66 +115,23 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 								-1.f, 1.f, 1.f, 1.f, // 7
 								 1.f, 1.f, 1.f, 1.f,
 	};
-								 /*1.f,-1.f, 1.f, 1.f,
-				    		     1.f, 1.f, 1.f, 1.f,
-								 1.f,-1.f,-1.f, 1.f,		
-								 1.f, 1.f, 0.f, 1.f,
-	                             1.f, 1.f, 1.f, 1.f,
-						 		 1.f, 0.f, 1.f, 1.f,
-								 1.f, 1.f, 1.f, 1.f,
-							     1.f, 0.f, 1.f, 1.f,
-								 1.f,-1.f,-1.f, 1.f,
-						  		 1.f, 1.f, 0.f, 1.f, 
-								 1.f, 1.f,-1.f, 1.f,		
-								 1.f, 0.f, 0.f, 1.f,
-
-								-1.f,-1.f, 1.f, 1.f,
-								 0.f, 1.f, 1.f, 1.f,
-								-1.f, 1.f, 1.f, 1.f,		
-								 0.f, 0.f, 1.f, 1.f,
-								-1.f,-1.f,-1.f, 1.f,		
-								 0.f, 1.f, 0.f, 1.f,
-								-1.f,-1.f,-1.f, 1.f,
-								 0.f, 1.f, 0.f, 1.f,
-								-1.f, 1.f, 1.f, 1.f,
-								 0.f, 0.f, 1.f, 1.f,
-								-1.f, 1.f,-1.f, 1.f,
-						         0.f, 0.f, 0.f, 1.f,
-
-								 1.f, 1.f,-1.f, 1.f,
-								 1.f, 1.f, 1.f, 1.f,
-								-1.f, 1.f,-1.f, 1.f,		
-								 0.f, 1.f, 1.f, 1.f,
-								 1.f, 1.f, 1.f, 1.f,		
-								 1.f, 1.f, 0.f, 1.f,
-								 1.f, 1.f, 1.f, 1.f,		
-								 1.f, 1.f, 0.f, 1.f,
-								-1.f, 1.f,-1.f, 1.f,		
-								 0.f, 1.f, 1.f, 1.f,
-								-1.f, 1.f, 1.f, 1.f,		
-								 0.f, 1.f, 0.f, 1.f,
-
-								 1.f,-1.f,-1.f, 1.f,		
-								 1.f, 0.f, 1.f, 1.f,
-								 1.f,-1.f, 1.f, 1.f,		
-								 1.f, 0.f, 0.f, 1.f,
-								-1.f,-1.f,-1.f, 1.f,		
-								 0.f, 0.f, 1.f, 1.f,
-								-1.f,-1.f,-1.f, 1.f,		
-								 0.f, 0.f, 1.f, 1.f,
-								 1.f,-1.f, 1.f, 1.f,		
-								 1.f, 0.f, 0.f, 1.f,
-								-1.f,-1.f, 1.f, 1.f,		
-								 0.f, 0.f, 0.f, 1.f};*/
 
 	// Only used for testing
 	std::shared_ptr<VulkanHardwareVertexBuffer> vertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(m_pGraphicDevice->getGPU(), m_pGraphicDevice->getGraphicDevice(),
 		(void*)vertexData, sizeof(vertexData), sizeof(float) * 8);
 
-	const uint16_t indexData[] = { 0, 1, 2, 2, 1, 3,
-								   4, 5, 6, 6, 5, 7 };
+	const uint16_t indexData[] = { 0, 2, 3, 3, 1, 0,
+								   4, 5, 7, 7, 6, 4,
+								   0, 1, 5, 5, 4, 0,
+								   2, 6, 7, 7, 3, 2,
+								   0, 4, 6, 6, 2, 0,
+								   5, 1, 3, 3, 7, 5,
+	};
+
 	std::shared_ptr<VulkanHardwareIndexBuffer> indexBuffer = std::make_shared<VulkanHardwareIndexBuffer>(m_pGraphicDevice->getGPU(), m_pGraphicDevice->getGraphicDevice(),
 		(void*)indexData, sizeof(indexData));
+
+	indexSize = sizeof(indexData) / sizeof(uint16_t);
 
 	const std::string vertShaderText =
 		"#version 450\n"
@@ -588,6 +547,16 @@ bool VulkanRenderer::createCommandBuffers(bool includeDepth)
 	return true;
 }
 
+inline glm::mat4 vulkanStyleProjection(const glm::mat4 &proj)
+{
+	// Flip Y in clipspace. X = -1, Y = -1 is topLeft in Vulkan.
+	auto mat = glm::scale(glm::mat4(1.0f), glm::vec3(1.0f, -1.0f, 1.0f));
+
+	// Z depth is [0, 1] range instead of [-1, 1].
+	mat = glm::scale(mat, glm::vec3(1.0f, 1.0f, 0.5f));
+	return glm::translate(mat, glm::vec3(0.0f, 0.0f, 1.0f)) * proj;
+}
+
 void VulkanRenderer::update(bool includeDepth)
 {
 	static glm::mat4 mvp = glm::mat4(1.0f);
@@ -606,9 +575,11 @@ void VulkanRenderer::update(bool includeDepth)
 	//glm::mat4 projection = glm::perspective(glm::radians(45.f), 1.0f, 0.1f, 100.f);
 	glm::mat4 projection = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, -2.0f, 2.0f);
 
+	projection = vulkanStyleProjection(projection);
+
 	glm::mat4 view = glm::mat4(1.0f);/* glm::lookAt(glm::vec3(0.f, 0.f, 5.f),
 		glm::vec3(0.f, 0.f, 0.f),
-		glm::vec3(0.f, 1.f, 0.f));*/
+		glm::vec3(0.f, -1.f, 0.f));*/
 
 	glm::mat4 model = glm::mat4(1.0f); 
 
@@ -692,9 +663,8 @@ void VulkanRenderer::update(bool includeDepth)
 		// draw the buffer
 		//vkCmdDraw(cmdBuffer, 6, 1, 0, 0);
 		// synchronize the memory object
-		glm::mat4* pMVP = nullptr;
 
-		vkCmdDrawIndexed(activeCmdBuffer, 12, 1, 0, 0, 0);
+		vkCmdDrawIndexed(activeCmdBuffer, indexSize, 1, 0, 0, 0);
 	}
 
 	vkCmdEndRenderPass(activeCmdBuffer);
