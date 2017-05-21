@@ -74,7 +74,6 @@ static int engine_init_display(struct engine* engine) {
 		//,"VK_LAYER_LUNARG_device_limits"
 	};
 
-	unsigned int threadSize = std::thread::hardware_concurrency();
 	engine->m_pApp->createVulkanInstance(layerNames, extensionNames, engine->app->window);
 	return 0;
 }
@@ -85,8 +84,11 @@ static int engine_init_display(struct engine* engine) {
 static void engine_draw_frame(struct engine* engine) {
 
 	// Just fill the screen with a color.
-	if(engine->m_pApp && engine->m_pApp->getRender())
+	if (engine->m_pApp && engine->m_pApp->getRender())
+	{
+		engine->m_pApp->getRender()->update();
 		engine->m_pApp->getRender()->render();
+	}
 }
 
 /**

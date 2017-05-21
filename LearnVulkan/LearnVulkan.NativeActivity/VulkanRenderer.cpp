@@ -15,7 +15,8 @@
 #include <glm\glm.hpp>
 #include <glm\gtc\matrix_transform.hpp>
 
-VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice) : m_pGraphicDevice(pDevice), m_pInstance(pInstance), m_pWnd(nullptr), m_pPipeline(nullptr)
+VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice) : m_pGraphicDevice(pDevice), m_pInstance(pInstance),  m_pPipeline(nullptr)
+	, m_pWnd(nullptr), m_activeCommandBufferId(0)
 {
 	m_pSwapChain = new VulkanSwapChain(m_pInstance, m_pGraphicDevice);
 	m_pPipeline = new VulkanPipeline(pDevice);
@@ -36,6 +37,12 @@ VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice
 	drawSemaphoreInfo.flags = 0;
 
 	vkCreateSemaphore(m_pGraphicDevice->getGraphicDevice(), &drawSemaphoreInfo, nullptr, &m_drawCompleteSemaphore);
+
+	VkFenceCreateInfo uniformFenceInfo = {};
+	uniformFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	uniformFenceInfo.pNext = 0;
+	uniformFenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+	vkCreateFence(m_pGraphicDevice->getGraphicDevice(), &uniformFenceInfo, nullptr, &m_cmdFence);
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -66,6 +73,9 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 	if (isOk)
 		isOk = createCmdPool();
 
+	if (isOk)
+		isOk = createDescriptorPool();
+
 	if (isOk && isDepthBuffer)
 		isOk = createDepthBuffer(pWnd);
 
@@ -76,31 +86,105 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 		isOk = createFrameBuffer(pWnd, isDepthBuffer);
 
 	// Maybe a bug of the driver, put the vertex data behind the program will cause crash
-	const float vertexData[] = { 0.0f, -0.5f, 0.0f, 1.0f,
-								  1.0f, 0.0f, 0.0f, 1.0f,
-								  0.5f, 0.5f, 0.0f, 1.0f,
-								  0.0f, 0.0f, 1.0f, 1.0f,
-								 -0.5f, 0.5f, 0.0f, 1.0f,
-								  0.0f, 1.0f, 0.0f, 1.0f,
-								 -1.0f, -0.5f, 0.0f, 1.0f,
-								  1.0f, 1.0f, 0.0f, 0.0f };
+	/*const float vertexData[] = { 0.0f, -0.5f, 0.0f, 1.0f,
+		1.0f, 0.0f, 0.0f, 1.0f,
+		0.5f, 0.5f, 0.0f, 1.0f,
+		0.0f, 0.0f, 1.0f, 1.0f,
+		-0.5f, 0.5f, 0.0f, 1.0f,
+		0.0f, 1.0f, 0.0f, 1.0f,
+		-1.0f, -0.5f, 0.0f, 1.0f,
+		1.0f, 1.0f, 0.0f, 0.0f };*/
+
+	const float vertexData[] = { 1.f,-1.f,-1.f, 1.f, // 0
+								 0.f, 0.f, 0.f, 1.f, 
+								 1.f, 1.f,-1.f, 1.f, // 1
+								 1.f, 0.f, 0.f, 1.f,
+								-1.f,-1.f,-1.f, 1.f, // 2
+								 0.f, 1.f, 0.f, 1.f,
+								-1.f, 1.f,-1.f, 1.f, // 3
+								 1.f, 1.f, 0.f, 1.f,
+
+								 1.f,-1.f, 1.f, 1.f, // 4
+								 0.f, 0.f, 1.f, 1.f,
+								 1.f, 1.f, 1.f, 1.f, // 5
+								 0.f, 1.f, 1.f, 1.f,
+								-1.f,-1.f, 1.f, 1.f, // 6
+								 1.f, 0.f, 1.f, 1.f,
+								-1.f, 1.f, 1.f, 1.f, // 7
+								 1.f, 1.f, 1.f, 1.f,
+	};
+								 /*1.f,-1.f, 1.f, 1.f,
+				    		     1.f, 1.f, 1.f, 1.f,
+								 1.f,-1.f,-1.f, 1.f,		
+								 1.f, 1.f, 0.f, 1.f,
+	                             1.f, 1.f, 1.f, 1.f,
+						 		 1.f, 0.f, 1.f, 1.f,
+								 1.f, 1.f, 1.f, 1.f,
+							     1.f, 0.f, 1.f, 1.f,
+								 1.f,-1.f,-1.f, 1.f,
+						  		 1.f, 1.f, 0.f, 1.f, 
+								 1.f, 1.f,-1.f, 1.f,		
+								 1.f, 0.f, 0.f, 1.f,
+
+								-1.f,-1.f, 1.f, 1.f,
+								 0.f, 1.f, 1.f, 1.f,
+								-1.f, 1.f, 1.f, 1.f,		
+								 0.f, 0.f, 1.f, 1.f,
+								-1.f,-1.f,-1.f, 1.f,		
+								 0.f, 1.f, 0.f, 1.f,
+								-1.f,-1.f,-1.f, 1.f,
+								 0.f, 1.f, 0.f, 1.f,
+								-1.f, 1.f, 1.f, 1.f,
+								 0.f, 0.f, 1.f, 1.f,
+								-1.f, 1.f,-1.f, 1.f,
+						         0.f, 0.f, 0.f, 1.f,
+
+								 1.f, 1.f,-1.f, 1.f,
+								 1.f, 1.f, 1.f, 1.f,
+								-1.f, 1.f,-1.f, 1.f,		
+								 0.f, 1.f, 1.f, 1.f,
+								 1.f, 1.f, 1.f, 1.f,		
+								 1.f, 1.f, 0.f, 1.f,
+								 1.f, 1.f, 1.f, 1.f,		
+								 1.f, 1.f, 0.f, 1.f,
+								-1.f, 1.f,-1.f, 1.f,		
+								 0.f, 1.f, 1.f, 1.f,
+								-1.f, 1.f, 1.f, 1.f,		
+								 0.f, 1.f, 0.f, 1.f,
+
+								 1.f,-1.f,-1.f, 1.f,		
+								 1.f, 0.f, 1.f, 1.f,
+								 1.f,-1.f, 1.f, 1.f,		
+								 1.f, 0.f, 0.f, 1.f,
+								-1.f,-1.f,-1.f, 1.f,		
+								 0.f, 0.f, 1.f, 1.f,
+								-1.f,-1.f,-1.f, 1.f,		
+								 0.f, 0.f, 1.f, 1.f,
+								 1.f,-1.f, 1.f, 1.f,		
+								 1.f, 0.f, 0.f, 1.f,
+								-1.f,-1.f, 1.f, 1.f,		
+								 0.f, 0.f, 0.f, 1.f};*/
 
 	// Only used for testing
 	std::shared_ptr<VulkanHardwareVertexBuffer> vertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(m_pGraphicDevice->getGPU(), m_pGraphicDevice->getGraphicDevice(),
-		(void*)vertexData, sizeof(float) * 4 * 8, sizeof(float) * 8);
+		(void*)vertexData, sizeof(vertexData), sizeof(float) * 8);
 
-	const uint16_t indexData[] = { 0, 1, 2, 3, 0, 2 };
+	const uint16_t indexData[] = { 0, 1, 2, 2, 1, 3,
+								   4, 5, 6, 6, 5, 7 };
 	std::shared_ptr<VulkanHardwareIndexBuffer> indexBuffer = std::make_shared<VulkanHardwareIndexBuffer>(m_pGraphicDevice->getGPU(), m_pGraphicDevice->getGraphicDevice(),
-		(void*)indexData, sizeof(uint16_t) * 6);
+		(void*)indexData, sizeof(indexData));
 
-	const std::string vertShaderText = 
+	const std::string vertShaderText =
 		"#version 450\n"
+		"layout(std140, binding = 0) uniform mvpBuffer {\n"
+		"	mat4 mvp;\n"
+		"} transform;\n"
 		"layout(location = 0) in vec4 pos;\n"
 		"layout(location = 1) in vec4 i_Color;\n"
 		"layout(location = 0) out vec4 v_color;\n"
 		"void main() {\n"
 		"   v_color = i_Color;\n"
-		"   gl_Position = pos;\n"
+		"   gl_Position = transform.mvp * pos;\n"
 		"}\n";
 
 	std::shared_ptr<VulkanGpuProgram> vertexShaderProg = std::make_shared<VulkanGpuProgram>(m_pGraphicDevice->getGraphicDevice(),
@@ -124,23 +208,31 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 	renderEntity->setFragmentShader(fragShaderProg);
 	renderEntity->setTopologyType(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
 
-	VulkanGraphicPipelineState pipelineState;
-	pipelineState.activeRenderPass = m_renderPass;
-	VkPipeline renderPipeline = VK_NULL_HANDLE;
-	VkPipelineLayout renderPipelineLayout = VK_NULL_HANDLE;
-	m_pPipeline->createGraphicPipeline(pWnd, renderEntity, pipelineState, renderPipeline, renderPipelineLayout);
-
-	glm::mat4 model, view, projection;
+	glm::mat4 model, view, projection, clip;
 	model = glm::mat4(1.0f);
-	projection = glm::perspective(glm::radians(45.f), 1.f, 0.1f, 100.f);
-	model = glm::lookAt(glm::vec3(10.f, 3.f, 10.f),
-		glm::vec3(0.f, 0.f, 0.f),
-		glm::vec3(0.f, -1.f, 0.f));
+	projection = glm::ortho(-5.f, 5.0f, -5.0f, 5.0f, -5.0f, 5.0f);
+	view = glm::mat4(1.0f); /* glm::lookAt(
+		glm::vec3(0, 3, -10),		// Camera is in World Space
+		glm::vec3(0, 0, 0),		// and looks at the origin
+		glm::vec3(0, -1, 0)		// Head is up
+	);*/
 
-	glm::mat4 mvp = projection * view * model;
+	model = glm::translate(model, glm::vec3(-1.5f, 1.5f, -1.5f));
+
+	// Vulkan clip space has inverted Y and half Z. 
+	// clang-format off 
+	clip = glm::mat4(1.0f); /* glm::mat4(1.0f, 0.0f, 0.0f, 0.0f,
+					 0.0f,-1.0f, 0.0f, 0.0f,
+					 0.0f, 0.0f, 0.5f, 0.0f,
+					 0.0f, 0.0f, 0.5f, 1.0f);*/
+
+
+	glm::mat4 imvp = clip * projection * view * model;
 
 	std::shared_ptr<VulkanHardwareUniformBuffer> mvpUniformBuffer = std::make_shared<VulkanHardwareUniformBuffer>(m_pGraphicDevice->getGPU(),
-		m_pGraphicDevice->getGraphicDevice(), &mvp, sizeof(mvp));
+		m_pGraphicDevice->getGraphicDevice(), &imvp, sizeof(imvp));
+
+	renderEntity->setUniformBuffer(mvpUniformBuffer);
 
 	std::vector<VkDescriptorSetLayout> shaderParams;
 	VulkanDescriptorSetMgr::get()->createDescriptorSetLayout(m_pGraphicDevice->getGraphicDevice(), renderEntity, shaderParams);
@@ -148,12 +240,21 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 	VkDescriptorSet renderDescriptorSet;
 	VulkanDescriptorSetMgr::get()->createDescriptorSet(m_pGraphicDevice->getGraphicDevice(), m_descriptorPool, shaderParams, renderDescriptorSet);
 
+	VulkanDescriptorSetMgr::get()->updateDescriptorSetbyUniformBuffer(m_pGraphicDevice->getGraphicDevice(), renderDescriptorSet, mvpUniformBuffer->getBuferDesriptorInfo());
+
 	renderEntity->setDescriptorSet(renderDescriptorSet);
+	renderEntity->setDescriptorSetLayout(shaderParams);
+
+	VulkanGraphicPipelineState pipelineState;
+	pipelineState.activeRenderPass = m_renderPass;
+	VkPipeline renderPipeline = VK_NULL_HANDLE;
+	VkPipelineLayout renderPipelineLayout = VK_NULL_HANDLE;
+	m_pPipeline->createGraphicPipeline(pWnd, renderEntity, pipelineState, renderPipeline, renderPipelineLayout);
 
 	addRenderable(renderEntity, renderPipeline, renderPipelineLayout);
 
 	if (isOk)
-		isOk = createCommandBuffers(false);
+		isOk = createCommandBuffers(isDepthBuffer);
 	
 	return isOk;
 }
@@ -194,7 +295,7 @@ bool VulkanRenderer::createDescriptorPool()
 	info.pPoolSizes = descriptorPools;
 
 	res = vkCreateDescriptorPool(m_pGraphicDevice->getGraphicDevice(), &info, nullptr, &m_descriptorPool);
-	return res = VK_SUCCESS;
+	return res == VK_SUCCESS;
 }
 
 bool VulkanRenderer::createSwapChain(ANativeWindow* pWnd)
@@ -309,13 +410,15 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 // draw every frame
 void VulkanRenderer::render()
 {
+	// Only for temporary: If not, the whole background buffer will be messy
 	sleep(1);
 	VkResult res = VK_SUCCESS;
 
-	const VkSwapchainKHR* pSwapChain = m_pSwapChain->getSwapChain();
+	vkDeviceWaitIdle(m_pGraphicDevice->getGraphicDevice());
 
-	uint32_t activeColorBufferId = 0;
-	res = vkAcquireNextImageKHR(m_pGraphicDevice->getGraphicDevice(), *pSwapChain, UINT64_MAX, m_presentCompleteSemaphore, VK_NULL_HANDLE, &activeColorBufferId);
+	uint32_t activeColorBufferId = m_activeCommandBufferId;
+
+	const VkSwapchainKHR* pSwapChain = m_pSwapChain->getSwapChain();
 
 	VkPipelineStageFlags submitPipelineStages = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
 
@@ -331,7 +434,7 @@ void VulkanRenderer::render()
 	submitInfo.pSignalSemaphores = &m_drawCompleteSemaphore;
 
 	// queue the command buffer for execution
-	VkCommandBufferMgr::get()->submitCommandBuffer(m_pGraphicDevice->getGraphicQueue(), &m_cmdDraws[activeColorBufferId], &submitInfo);
+	VkCommandBufferMgr::get()->submitCommandBuffer(m_pGraphicDevice->getGraphicQueue(), &m_cmdDraws[activeColorBufferId], &submitInfo, m_cmdFence);
 
 	// present the image in the window
 	VkPresentInfoKHR present = {};
@@ -476,79 +579,125 @@ bool VulkanRenderer::createCommandBuffers(bool includeDepth)
 	VkResult res = VK_SUCCESS;
 	m_cmdDraws.resize(m_framebuffers.size());
 
-	// Only for clear color demo
 	for (uint32_t i = 0; i < m_cmdDraws.size(); i++)
 	{
 		VkCommandBuffer cmdBuffer;
 		res = VkCommandBufferMgr::get()->createCommandBuffer(&m_pGraphicDevice->getGraphicDevice(), m_cmdPool, &cmdBuffer);
-		VkClearValue clearValues[2] ;
-		switch (i)
-		{
-		case 0:
-			clearValues[0].color.float32[0] = 1.0f;
-			clearValues[0].color.float32[1] = 0.0f;
-			clearValues[0].color.float32[2] = 0.0f;
-			clearValues[0].color.float32[3] = 1.0f;
-			break;
-		case 1:
-			clearValues[0].color.float32[0] = 0.0f;
-			clearValues[0].color.float32[1] = 1.0f;
-			clearValues[0].color.float32[2] = 0.0f;
-			clearValues[0].color.float32[3] = 1.0f;
-			break;
-		case 2:
-			clearValues[0].color.float32[0] = 0.0f;
-			clearValues[0].color.float32[1] = 0.0f;
-			clearValues[0].color.float32[2] = 1.0f;
-			clearValues[0].color.float32[3] = 1.0f;
-			break;
-		default:
-			clearValues[0].color.float32[0] = 0.0f;
-			clearValues[0].color.float32[1] = 1.0f;
-			clearValues[0].color.float32[2] = 0.0f;
-			clearValues[0].color.float32[3] = 0.0f;
-		}
-
-		clearValues[1].depthStencil.depth = 1.0f;
-		clearValues[1].depthStencil.stencil = 0;
-
-		VkRenderPassBeginInfo renderPassBeginInfo = {};
-		renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-		renderPassBeginInfo.pNext = nullptr;
-		renderPassBeginInfo.renderPass = m_renderPass;
-		renderPassBeginInfo.framebuffer = m_framebuffers[i];
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.renderArea.extent.width = ANativeWindow_getWidth(m_pWnd);
-		renderPassBeginInfo.renderArea.extent.height = ANativeWindow_getHeight(m_pWnd);
-		renderPassBeginInfo.clearValueCount = includeDepth ? 2 : 1;
-		renderPassBeginInfo.pClearValues = clearValues;
-
-		res = VkCommandBufferMgr::get()->beginCommandBuffer(&cmdBuffer);
-
-		vkCmdBeginRenderPass(cmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
-
-		// record the static renderable
-		for(auto rRenderInfo : m_renderEntityInfo)
-		{
-			vkCmdBindPipeline(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, std::get<1>(rRenderInfo));
-
-			// create the bind vertex buffer
-			VkDeviceSize offset[1] = { 0 };
-			vkCmdBindVertexBuffers(cmdBuffer, 0, 1, &(std::get<0>(rRenderInfo)->getVertexBuffer()->getVertexBuffer()), offset);
-			vkCmdBindIndexBuffer(cmdBuffer, std::get<0>(rRenderInfo)->getIndexBuffer()->getBuffer(), *offset, VK_INDEX_TYPE_UINT16);
-
-			vkCmdBindDescriptorSets(cmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, std::get<2>(rRenderInfo), 0, 1, std::get<0>(rRenderInfo)->getDescriptorSet(), 0, nullptr);
-			// draw the buffer
-			//vkCmdDraw(cmdBuffer, 3, 1, 0, 0);
-			vkCmdDrawIndexed(cmdBuffer, 6, 1, 0, 0, 0);
-		}
-
-		vkCmdEndRenderPass(cmdBuffer);
-
-		res = VkCommandBufferMgr::get()->endCommandBuffer(&cmdBuffer);
-
 		m_cmdDraws[i] = cmdBuffer;
 	}
 	return true;
+}
+
+void VulkanRenderer::update(bool includeDepth)
+{
+	static glm::mat4 mvp = glm::mat4(1.0f);
+	static float transf = 0.0f;
+	static float rot = 0.0f;
+	static float transfSign = 1.0;
+	transf += transfSign * 0.5;
+
+	if (transf >= 5.0f)
+		transfSign = -1.0f;
+	if (transf <= -5.0f)
+		transfSign = 1.0f;
+
+	float aspect = ANativeWindow_getWidth(m_pWnd) / ANativeWindow_getHeight(m_pWnd);
+
+	//glm::mat4 projection = glm::perspective(glm::radians(45.f), 1.0f, 0.1f, 100.f);
+	glm::mat4 projection = glm::ortho(-2.0f, 2.0f, -2.0f, 2.0f, -2.0f, 2.0f);
+
+	glm::mat4 view = glm::mat4(1.0f);/* glm::lookAt(glm::vec3(0.f, 0.f, 5.f),
+		glm::vec3(0.f, 0.f, 0.f),
+		glm::vec3(0.f, 1.f, 0.f));*/
+
+	glm::mat4 model = glm::mat4(1.0f); 
+
+	rot += 10.f;
+
+	model = glm::rotate(model, rot, glm::vec3(0.0f, 1.0f, 0.0f)) 
+		* glm::rotate(model, rot, glm::vec3(1.0f, 1.0f, 1.0f));
+
+	mvp = projection * view * model;
+
+	VkResult res = VK_RESULT_MAX_ENUM;
+
+	vkWaitForFences(m_pGraphicDevice->getGraphicDevice(), 1, &m_cmdFence, VK_TRUE, INT64_MAX);
+	vkResetFences(m_pGraphicDevice->getGraphicDevice(), 1, &m_cmdFence);
+
+	const VkSwapchainKHR* pSwapChain = m_pSwapChain->getSwapChain();
+	res = vkAcquireNextImageKHR(m_pGraphicDevice->getGraphicDevice(), *pSwapChain, UINT64_MAX, m_presentCompleteSemaphore, VK_NULL_HANDLE, &m_activeCommandBufferId);
+
+	VkClearValue clearValues[2];
+	switch (m_activeCommandBufferId)
+	{
+	case 0:
+		clearValues[0].color.float32[0] = 1.0f;
+		clearValues[0].color.float32[1] = 0.0f;
+		clearValues[0].color.float32[2] = 0.0f;
+		clearValues[0].color.float32[3] = 1.0f;
+		break;
+	case 1:
+		clearValues[0].color.float32[0] = 0.0f;
+		clearValues[0].color.float32[1] = 1.0f;
+		clearValues[0].color.float32[2] = 0.0f;
+		clearValues[0].color.float32[3] = 1.0f;
+		break;
+	case 2:
+		clearValues[0].color.float32[0] = 0.0f;
+		clearValues[0].color.float32[1] = 0.0f;
+		clearValues[0].color.float32[2] = 1.0f;
+		clearValues[0].color.float32[3] = 1.0f;
+		break;
+	default:
+		clearValues[0].color.float32[0] = 0.0f;
+		clearValues[0].color.float32[1] = 1.0f;
+		clearValues[0].color.float32[2] = 0.0f;
+		clearValues[0].color.float32[3] = 0.0f;
+	}
+
+	clearValues[1].depthStencil.depth = 1.0f;
+	clearValues[1].depthStencil.stencil = 0;
+
+	VkRenderPassBeginInfo renderPassBeginInfo = {};
+	renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	renderPassBeginInfo.pNext = nullptr;
+	renderPassBeginInfo.renderPass = m_renderPass;
+	renderPassBeginInfo.framebuffer = m_framebuffers[m_activeCommandBufferId];
+	renderPassBeginInfo.renderArea.offset.x = 0;
+	renderPassBeginInfo.renderArea.offset.y = 0;
+	renderPassBeginInfo.renderArea.extent.width = ANativeWindow_getWidth(m_pWnd);
+	renderPassBeginInfo.renderArea.extent.height = ANativeWindow_getHeight(m_pWnd);
+	renderPassBeginInfo.clearValueCount = includeDepth ? 2 : 1;
+	renderPassBeginInfo.pClearValues = clearValues;
+
+	VkCommandBuffer& activeCmdBuffer = m_cmdDraws[m_activeCommandBufferId];
+	
+	res = VkCommandBufferMgr::get()->beginCommandBuffer(&activeCmdBuffer);
+
+	vkCmdBeginRenderPass(activeCmdBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+
+	// record the static renderable
+	for (auto rRenderInfo : m_renderEntityInfo)
+	{
+		std::get<0>(rRenderInfo)->getUniformBuffer()->updateUniformBuffer(activeCmdBuffer, &mvp, sizeof(mvp));
+
+		vkCmdBindPipeline(activeCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, std::get<1>(rRenderInfo));
+
+		// create the bind vertex buffer
+		VkDeviceSize offset[1] = { 0 };
+		vkCmdBindVertexBuffers(activeCmdBuffer, 0, 1, &(std::get<0>(rRenderInfo)->getVertexBuffer()->getVertexBuffer()), offset);
+		vkCmdBindIndexBuffer(activeCmdBuffer, std::get<0>(rRenderInfo)->getIndexBuffer()->getBuffer(), *offset, VK_INDEX_TYPE_UINT16);
+
+		vkCmdBindDescriptorSets(activeCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, std::get<2>(rRenderInfo), 0, 1, std::get<0>(rRenderInfo)->getDescriptorSet(), 0, nullptr);
+		// draw the buffer
+		//vkCmdDraw(cmdBuffer, 6, 1, 0, 0);
+		// synchronize the memory object
+		glm::mat4* pMVP = nullptr;
+
+		vkCmdDrawIndexed(activeCmdBuffer, 12, 1, 0, 0, 0);
+	}
+
+	vkCmdEndRenderPass(activeCmdBuffer);
+
+	res = VkCommandBufferMgr::get()->endCommandBuffer(&activeCmdBuffer);
 }

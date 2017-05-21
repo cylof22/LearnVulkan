@@ -26,8 +26,8 @@ public:
 	bool createRenderPass(bool includeDepth, bool clear = true);
 	bool createFrameBuffer(ANativeWindow* pWnd, bool includeDepth, bool clear = true);
 	bool createCommandBuffers(bool includeDepth);
+	void update(bool includeDepth = true);
 	void render();
-
 	void addRenderable(VulkanRenderable* renderEntity, const VkPipeline& pipeline, const VkPipelineLayout& layout);
 
 protected:
@@ -46,6 +46,7 @@ private:
 
 	std::vector<VkFramebuffer> m_framebuffers;
 	std::vector<VkCommandBuffer> m_cmdDraws;
+	VkFence m_cmdFence;
 
 	VkFormat m_depthFormat;
 	VkImageView m_depthImageView;
@@ -56,4 +57,6 @@ private:
 	VkSemaphore m_drawCompleteSemaphore;
 
 	std::vector<std::tuple<VulkanRenderable*, VkPipeline, VkPipelineLayout>> m_renderEntityInfo;
+
+	uint32_t m_activeCommandBufferId;
 };

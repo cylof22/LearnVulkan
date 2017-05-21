@@ -21,6 +21,10 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debugFunction(VkFlags msgFlags, VkDebugReportObje
 	{
 		LOGI("[VK_DEBUG_REPORT] PERFORMANCE: [ %s ] Code %i : %s", pLayerPrefix, msgCode, pMsg);
 	}
+	else if (msgFlags & VK_DEBUG_REPORT_DEBUG_BIT_EXT)
+	{
+		LOGI("[VK_DEBUG_REPORT] VALIDATION: [%s] Code %i : %s", pLayerPrefix, msgCode, pMsg);
+	}
 	else
 		return VK_FALSE;
 

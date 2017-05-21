@@ -3,6 +3,7 @@
 class VulkanHardwareVertexBuffer;
 class VulkanHardwareIndexBuffer;
 class VulkanDevice;
+#include <glm\glm.hpp>
 
 class VulkanMemoryBufferMgr
 {
@@ -20,6 +21,8 @@ public:
 
 	bool createUniformBuffer(const VkPhysicalDevice& rGPU, const VkDevice& device, const void* pUniformData, uint32_t uniformSize,
 		VkBuffer& uniformBuffer, VkDeviceMemory& uniformMemory);
+
+	bool updateUniformBuffer(const VkDevice& device, const VkCommandBuffer& cmdBuffer, const void* pUniformData, uint32_t uniformSize, VkBuffer& uniformBuffer, VkDeviceMemory& uniformMemory);
 
 private:
 	static VulkanMemoryBufferMgr* m_pMgr;

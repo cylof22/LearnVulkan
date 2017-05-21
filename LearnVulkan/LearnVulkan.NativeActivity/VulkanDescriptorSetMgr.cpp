@@ -81,7 +81,7 @@ VkResult VulkanDescriptorSetMgr::createDescriptorSet(const VkDevice& graphicDevi
 	return res;
 }
 
-VkResult VulkanDescriptorSetMgr::updateDescriptorSetbyUniformBuffer(const VkDevice& graphicDevice, VkDescriptorSet& shaderDescriptorSet, const VkDescriptorBufferInfo& bufferInfo)
+VkResult VulkanDescriptorSetMgr::updateDescriptorSetbyUniformBuffer(const VkDevice& graphicDevice, const VkDescriptorSet& shaderDescriptorSet, const VkDescriptorBufferInfo& bufferInfo)
 {
 	VkResult res = VK_RESULT_MAX_ENUM;
 	
