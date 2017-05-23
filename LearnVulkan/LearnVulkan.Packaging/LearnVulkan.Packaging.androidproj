@@ -120,6 +120,7 @@
     </AntPackage>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <Content Include="assets\LearningVulkan.PNG" />
     <Content Include="res\values\strings.xml" />
     <AntBuildXml Include="build.xml">
       <SubType>Designer</SubType>

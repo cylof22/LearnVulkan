@@ -74,7 +74,10 @@ static int engine_init_display(struct engine* engine) {
 		//,"VK_LAYER_LUNARG_device_limits"
 	};
 
+	AAsset* pTextureAsset = AAssetManager_open(engine->app->activity->assetManager, "LearningVulkan.PNG", AASSET_MODE_UNKNOWN);
+
 	engine->m_pApp->createVulkanInstance(layerNames, extensionNames, engine->app->window);
+
 	return 0;
 }
 
