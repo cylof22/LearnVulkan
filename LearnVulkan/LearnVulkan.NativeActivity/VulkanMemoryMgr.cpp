@@ -36,7 +36,7 @@ bool VulkanMemoryMgr::memoryTypeFromProperties(const VkPhysicalDevice* pGPU, uin
 }
 
 bool VulkanMemoryMgr::imageLayoutConversion(const VkImage& image, const VkImageAspectFlags aspectMask, VkImageLayout srcLayout, VkImageLayout dstLayout, 
-	VkAccessFlagBits srcAcessFlag, const VkCommandBuffer & cmdBuffer)
+	VkAccessFlagBits srcAcessFlag, const VkCommandBuffer & cmdBuffer, uint32_t mipMapLevels /*=1*/)
 {
 	if (cmdBuffer == VK_NULL_HANDLE)
 		return false;
@@ -51,7 +51,7 @@ bool VulkanMemoryMgr::imageLayoutConversion(const VkImage& image, const VkImageA
 	imageBarrier.image = image;
 	imageBarrier.subresourceRange.aspectMask = aspectMask;
 	imageBarrier.subresourceRange.baseMipLevel = 0;
-	imageBarrier.subresourceRange.levelCount = 1;
+	imageBarrier.subresourceRange.levelCount = mipMapLevels;
 	imageBarrier.subresourceRange.baseArrayLayer = 0;
 	imageBarrier.subresourceRange.layerCount = 1;
 
@@ -84,4 +84,20 @@ bool VulkanMemoryMgr::imageLayoutConversion(const VkImage& image, const VkImageA
 	vkCmdPipelineBarrier(cmdBuffer, srcStageFlags, dstStageFlags, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier);
 
 	return true;
+}
+
+VkFormat VulkanMemoryMgr::imageFormatConvert(const gli::gl::format gliFormat)
+{
+	VkFormat vkImageFormat = VK_FORMAT_UNDEFINED;
+
+	switch (gliFormat.Internal)
+	{
+	case gli::gl::INTERNAL_RGBA8_UNORM:
+		vkImageFormat = VK_FORMAT_R8G8B8A8_UNORM;
+		break;
+	default:
+		vkImageFormat = VK_FORMAT_UNDEFINED;
+	}
+
+	return vkImageFormat;
 }

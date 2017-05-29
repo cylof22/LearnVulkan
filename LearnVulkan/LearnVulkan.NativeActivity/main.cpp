@@ -21,8 +21,10 @@
 #include "common\vulkan_wrapper.h"
 #include "VulkanApplication.h"
 #include "VulkanRenderer.h"
+#include "VulkanHardwareTextureBuffer.h"
 //#include <vector>
 #include <thread>
+
 
 /**
 * Our saved state data.
@@ -74,9 +76,24 @@ static int engine_init_display(struct engine* engine) {
 		//,"VK_LAYER_LUNARG_device_limits"
 	};
 
-	AAsset* pTextureAsset = AAssetManager_open(engine->app->activity->assetManager, "LearningVulkan.PNG", AASSET_MODE_UNKNOWN);
-
 	engine->m_pApp->createVulkanInstance(layerNames, extensionNames, engine->app->window);
+
+	AAsset* pTextureAsset = AAssetManager_open(engine->app->activity->assetManager, "LearningVulkan.ktx", AASSET_MODE_UNKNOWN);
+	if (pTextureAsset)
+	{
+		off_t imageSize = AAsset_getLength(pTextureAsset);
+
+		char* buffer = new char[imageSize];
+
+		off_t readSize = AAsset_read(pTextureAsset, (void*)buffer, imageSize);
+		assert(imageSize == readSize);
+
+
+		VulkanHardwareTextureBuffer* pTexture = new VulkanHardwareTextureBuffer(*engine->m_pApp->getDevice(), engine->m_pApp->getRender()->getCmdPool(), 
+			buffer, readSize);
+
+		delete[]buffer;
+	}
 
 	return 0;
 }

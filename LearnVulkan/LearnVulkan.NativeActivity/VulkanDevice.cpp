@@ -17,6 +17,9 @@ VkResult VulkanDevice::createDevice(const std::vector<const char*>& layers, cons
 {
 	VkResult res = VK_SUCCESS;
 
+	VkPhysicalDeviceFeatures supportedFeatures;
+	vkGetPhysicalDeviceFeatures(*m_pGPU, &supportedFeatures);
+
 	float queuePriority = 0.0;
 	// Device queue information
 	VkDeviceQueueCreateInfo queueInfo = { };
@@ -36,6 +39,7 @@ VkResult VulkanDevice::createDevice(const std::vector<const char*>& layers, cons
 	deviceInfo.ppEnabledLayerNames = layers.data();
 	deviceInfo.enabledExtensionCount = extensions.size();
 	deviceInfo.ppEnabledExtensionNames = extensions.data();
+	deviceInfo.pEnabledFeatures = &supportedFeatures;
 
 	res = vkCreateDevice(*m_pGPU, &deviceInfo, nullptr, &m_device);
 	return res;

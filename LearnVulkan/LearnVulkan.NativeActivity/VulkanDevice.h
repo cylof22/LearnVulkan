@@ -9,7 +9,7 @@ public:
 	~VulkanDevice();
 
 	VkResult initDevice(const std::vector<const char*>& layers, const std::vector<const char*>& extensions);
-	const VkQueue& getGraphicQueue() { return m_graphicQueue; }
+	const VkQueue& getGraphicQueue() const { return m_graphicQueue; }
 
 	uint32_t getQueueFamilySize() const { return m_queueFamilySize; }
 	uint32_t getGraphicQueueFamilyIndex() const { return m_graphicQueueIndex; }

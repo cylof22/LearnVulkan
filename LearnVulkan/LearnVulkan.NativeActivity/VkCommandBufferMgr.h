@@ -14,6 +14,8 @@ public:
 	VkResult endCommandBuffer(const VkCommandBuffer* pCmdBuffer);
 
 	VkResult submitCommandBuffer(const VkQueue& queue, const VkCommandBuffer* pCmdBuffer, const VkSubmitInfo* pInfo = nullptr, const VkFence& fence = VK_NULL_HANDLE);
+
+	VkResult destroyCommandBuffer(const VkDevice* pDevice, const VkCommandPool& cmdPool, const VkCommandBuffer* pCmdBuffer);
 private:
 	static VkCommandBufferMgr* m_pMgr;
 };

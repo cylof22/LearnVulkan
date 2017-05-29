@@ -89,3 +89,9 @@ VkResult VkCommandBufferMgr::submitCommandBuffer(const VkQueue & queue, const Vk
 	res = vkQueueWaitIdle(queue);
 	return res;
 }
+
+VkResult VkCommandBufferMgr::destroyCommandBuffer(const VkDevice * pDevice, const VkCommandPool& rCmdPool, const VkCommandBuffer * pCmdBuffer)
+{
+	vkFreeCommandBuffers(*pDevice, rCmdPool, 1, pCmdBuffer);
+	return VK_SUCCESS;
+}

@@ -30,6 +30,8 @@ public:
 	void render();
 	void addRenderable(VulkanRenderable* renderEntity, const VkPipeline& pipeline, const VkPipelineLayout& layout);
 
+	const VkCommandPool& getCmdPool() const { return m_cmdPool; }
+
 protected:
 	bool reInit();
 private:

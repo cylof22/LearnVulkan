@@ -118,7 +118,7 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <LibraryPath>C:\ProgramData\Microsoft\AndroidNDK64\android-ndk-r13b\sources\third_party\vulkan\src\build-android\jniLibs\arm64-v8a;H:\Vulkan\LearnVulkan\Shaderc\libs\gnustl_static\arm64-v8a;$(LibraryPath)</LibraryPath>
-    <IncludePath>H:\Vulkan\LearnVulkan\Shaderc\include;C:\ProgramData\Microsoft\AndroidNDK64\android-ndk-r13b\sources\third_party\vulkan\src\libs;$(IncludePath)</IncludePath>
+    <IncludePath>H:\Vulkan\LearnVulkan\gli-master;H:\Vulkan\LearnVulkan\Shaderc\include;H:\Vulkan\LearnVulkan\gli-master\external;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" />
@@ -224,6 +224,7 @@
     <ClInclude Include="pch.h" />
     <ClInclude Include="android_native_app_glue.h" />
     <ClInclude Include="VulkanDescriptorSetMgr.h" />
+    <ClInclude Include="VulkanHardwareTextureBuffer.h" />
     <ClInclude Include="VulkanHardwareUniformBuffer.h" />
     <ClInclude Include="VulkanMemoryMgr.h" />
     <ClInclude Include="VkCommandBufferMgr.h" />
@@ -246,6 +247,7 @@
     <ClCompile Include="common\vulkan_wrapper.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="VulkanDescriptorSetMgr.cpp" />
+    <ClCompile Include="VulkanHardwareTextureBuffer.cpp" />
     <ClCompile Include="VulkanHardwareUniformBuffer.cpp" />
     <ClCompile Include="VulkanMemoryMgr.cpp" />
     <ClCompile Include="VkCommandBufferMgr.cpp" />
