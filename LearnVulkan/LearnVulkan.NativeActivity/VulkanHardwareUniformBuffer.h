@@ -9,7 +9,7 @@ public:
 	VulkanHardwareUniformBuffer(const VkPhysicalDevice* pGPU, const VkDevice& device, const void * pUniformData, uint32_t uniformSize);
 	~VulkanHardwareUniformBuffer();
 
-	VkDescriptorBufferInfo& getBuferDesriptorInfo() { return m_uniformBufferInfo; }
+	VkDescriptorBufferInfo& getDesriptorInfo() { return m_uniformBufferInfo; }
 
 	bool updateUniformBuffer(const VkCommandBuffer& cmdBuffer, const void* pUniformData, uint32_t uniformSize);
 
