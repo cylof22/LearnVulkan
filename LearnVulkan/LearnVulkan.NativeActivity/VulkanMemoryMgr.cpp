@@ -36,7 +36,7 @@ bool VulkanMemoryMgr::memoryTypeFromProperties(const VkPhysicalDevice* pGPU, uin
 }
 
 bool VulkanMemoryMgr::imageLayoutConversion(const VkImage& image, const VkImageAspectFlags aspectMask, VkImageLayout srcLayout, VkImageLayout dstLayout, 
-	VkAccessFlagBits srcAcessFlag, const VkCommandBuffer & cmdBuffer, uint32_t mipMapLevels /*=1*/)
+	VkAccessFlagBits srcAcessFlag, const VkCommandBuffer & cmdBuffer, uint32_t mipMapLevels /*=1*/, uint32_t layerCount /*=1*/)
 {
 	if (cmdBuffer == VK_NULL_HANDLE)
 		return false;
@@ -53,7 +53,7 @@ bool VulkanMemoryMgr::imageLayoutConversion(const VkImage& image, const VkImageA
 	imageBarrier.subresourceRange.baseMipLevel = 0;
 	imageBarrier.subresourceRange.levelCount = mipMapLevels;
 	imageBarrier.subresourceRange.baseArrayLayer = 0;
-	imageBarrier.subresourceRange.layerCount = 1;
+	imageBarrier.subresourceRange.layerCount = layerCount;
 
 	if (srcLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
 		imageBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;

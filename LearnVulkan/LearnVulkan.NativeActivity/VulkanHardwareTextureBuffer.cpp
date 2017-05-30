@@ -37,7 +37,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 	imageInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	imageInfo.usage = imageUsage;
 	imageInfo.flags = 0;
-	imageInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
+	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.tiling = VK_IMAGE_TILING_LINEAR;
 
 	res = vkCreateImage(pDevice->getGraphicDevice(), &imageInfo, nullptr, &m_rImage);
@@ -75,6 +75,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 	assert(res == VK_SUCCESS);
 
 	// Why not use memcpy directly?
+	//memcpy(pMappedData, image2D.data(), memoryRequirements.size);
 	uint8_t* offsetData = (uint8_t*)image2D.data();
 	for (uint32_t y = 0; y < image2D.extent()[0]; ++y)
 	{
@@ -99,11 +100,11 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 	textureSubResourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
 	textureSubResourceRange.baseMipLevel = 0;
 	textureSubResourceRange.levelCount = imageInfo.mipLevels;
-	textureSubResourceRange.layerCount = 1;
+	textureSubResourceRange.baseArrayLayer = 0;
+	textureSubResourceRange.layerCount = imageInfo.arrayLayers;
 
-	VulkanMemoryMgr::get()->imageLayoutConversion(m_rImage, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_PREINITIALIZED,
-		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_HOST_WRITE_BIT, texturelayoutBuffer, imageInfo.mipLevels);
-
+	VulkanMemoryMgr::get()->imageLayoutConversion(m_rImage, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
+		VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_HOST_WRITE_BIT, texturelayoutBuffer, imageInfo.mipLevels, imageInfo.arrayLayers);
 
 	VkCommandBufferMgr::get()->endCommandBuffer(&texturelayoutBuffer);
 
