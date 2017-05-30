@@ -75,41 +75,85 @@ void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer,
 	-1.0f, -0.5f, 0.0f, 1.0f,
 	1.0f, 1.0f, 0.0f, 0.0f };*/
 
-	const float vertexData[] = { 
-		1.f,-1.f,-1.f, 1.f, // 0
-		0.f, 0.f,
-		1.f, 1.f,-1.f, 1.f, // 1
-		0.f, 1.f,
-		-1.f,-1.f,-1.f, 1.f, // 2
-		1.f, 1.f,
-		-1.f, 1.f,-1.f, 1.f, // 3
-		1.f, 0.f,
+	const float vertexData[] = {
+		-1.0f,-1.0f,-1.0f, 1.0f, 1.0f, 1.0f,  // -X side 
+		-1.0f,-1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+		-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		-1.0f, 1.0f,-1.0f, 1.0f, 1.0f, 0.0f,
+		-1.0f,-1.0f,-1.0f, 1.0f, 1.0f, 1.0f,
 
-		1.f,-1.f, 1.f, 1.f, // 4
-		0.f, 0.f,
-		1.f, 1.f, 1.f, 1.f, // 5
-		1.f, 0.f,
-		-1.f,-1.f, 1.f, 1.f, // 6
-		1.f, 1.f,
-		-1.f, 1.f, 1.f, 1.f, // 7
-		1.f, 0.f,
+		-1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 1.0f,  // -Z side 
+		1.0f, 1.0f,-1.0f, 1.0f, 1.0f, 0.0f,
+		1.0f,-1.0f,-1.0f, 1.0f, 1.0f, 1.0f,
+		-1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 1.0f,
+		-1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 0.0f,
+		1.0f, 1.0f,-1.0f, 1.0f, 1.0f, 0.0f,
+
+		-1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 1.0f, // -Y 
+		1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 0.0f,
+		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		-1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 1.0f,
+		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		-1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+
+		-1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 1.0f,  // +Y side 
+		-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		-1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 1.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		1.0f, 1.0f,-1.0f, 1.0f, 1.0f, 1.0f,
+
+		1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 1.0f,  // +X side 
+		1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		1.0f,-1.0f,-1.0f, 1.0f, 1.0f, 1.0f,
+		1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 1.0f,
+
+		-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,  // +Z side 
+		-1.0f,-1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		-1.0f,-1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 	};
+
+	//const float vertexData[] = { 
+	//	1.f,-1.f,-1.f, 1.f, // 0
+	//	0.f, 0.f,
+	//	1.f, 1.f,-1.f, 1.f, // 1
+	//	1.f, 0.f,
+	//	-1.f,-1.f,-1.f, 1.f, // 2
+	//	1.f, 1.f,
+	//	-1.f, 1.f,-1.f, 1.f, // 3
+	//	0.f, 1.f,
+
+	//	1.f,-1.f, 1.f, 1.f, // 4
+	//	0.f, 0.f,
+	//	1.f, 1.f, 1.f, 1.f, // 5
+	//	1.f, 0.f,
+	//	-1.f,-1.f, 1.f, 1.f, // 6
+	//	1.f, 1.f,
+	//	-1.f, 1.f, 1.f, 1.f, // 7
+	//	1.f, 0.f,
+	//};
 
 	// Only used for testing
 	std::shared_ptr<VulkanHardwareVertexBuffer> vertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(pDevice->getGPU(), pDevice->getGraphicDevice(),
 		(void*)vertexData, sizeof(vertexData), sizeof(float) * 6);
 
-	const uint16_t indexData[] = { 
+	/*const uint16_t indexData[] = { 
 		0, 2, 3, 3, 1, 0,
 		4, 5, 7, 7, 6, 4,
-		/*0, 1, 5, 5, 4, 0,
+		0, 1, 5, 5, 4, 0,
 		2, 6, 7, 7, 3, 2,
 		0, 4, 6, 6, 2, 0,
-		5, 1, 3, 3, 7, 5,*/
+		5, 1, 3, 3, 7, 5,
 	};
 
 	std::shared_ptr<VulkanHardwareIndexBuffer> indexBuffer = std::make_shared<VulkanHardwareIndexBuffer>(pDevice->getGPU(), pDevice->getGraphicDevice(),
-		(void*)indexData, sizeof(indexData));
+		(void*)indexData, sizeof(indexData));*/
 
 	const std::string vertShaderText =
 		"#version 450\n"
@@ -141,7 +185,7 @@ void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer,
 
 	VulkanRenderable* renderEntity = new VulkanRenderable;
 	renderEntity->setVertexBuffer(vertexBuffer);
-	renderEntity->setIndexBuffer(indexBuffer);
+	//renderEntity->setIndexBuffer(indexBuffer);
 	renderEntity->setVertexShader(vertexShaderProg);
 	renderEntity->setFragmentShader(fragShaderProg);
 	renderEntity->setTopologyType(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);

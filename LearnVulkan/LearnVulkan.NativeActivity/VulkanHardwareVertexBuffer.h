@@ -12,10 +12,12 @@ public:
 	const std::vector<VkVertexInputAttributeDescription>& getVertexInputAttributes() { return m_vertexAttributes; }
 	const VkBuffer& getVertexBuffer() { return m_vertexBuffer; }
 
+	const uint32_t size() const { return m_size; };
 private:
 	VkBuffer m_vertexBuffer;
 	VkDeviceMemory m_vertexMemory;
 
 	VkVertexInputBindingDescription m_vertexBinding;
 	std::vector<VkVertexInputAttributeDescription> m_vertexAttributes;
+	uint32_t m_size;
 };

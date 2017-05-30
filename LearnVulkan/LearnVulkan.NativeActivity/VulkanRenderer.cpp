@@ -531,14 +531,20 @@ void VulkanRenderer::update(bool includeDepth)
 		// create the bind vertex buffer
 		VkDeviceSize offset[1] = { 0 };
 		vkCmdBindVertexBuffers(activeCmdBuffer, 0, 1, &(std::get<0>(rRenderInfo)->getVertexBuffer()->getVertexBuffer()), offset);
-		vkCmdBindIndexBuffer(activeCmdBuffer, std::get<0>(rRenderInfo)->getIndexBuffer()->getBuffer(), *offset, VK_INDEX_TYPE_UINT16);
+		if(std::get<0>(rRenderInfo)->getIndexBuffer())
+			vkCmdBindIndexBuffer(activeCmdBuffer, std::get<0>(rRenderInfo)->getIndexBuffer()->getBuffer(), *offset, VK_INDEX_TYPE_UINT16);
 
 		vkCmdBindDescriptorSets(activeCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, std::get<2>(rRenderInfo), 0, 1, std::get<0>(rRenderInfo)->getDescriptorSet(), 0, nullptr);
-		// draw the buffer
-		//vkCmdDraw(cmdBuffer, 6, 1, 0, 0);
-		// synchronize the memory object
 
-		vkCmdDrawIndexed(activeCmdBuffer, std::get<0>(rRenderInfo)->getIndexBuffer()->size(), 1, 0, 0, 0);
+		// draw the buffer
+		if (std::get<0>(rRenderInfo)->getIndexBuffer())
+		{
+			vkCmdDrawIndexed(activeCmdBuffer, std::get<0>(rRenderInfo)->getIndexBuffer()->size(), 1, 0, 0, 0);
+		}
+		else
+		{
+			vkCmdDraw(activeCmdBuffer, std::get<0>(rRenderInfo)->getVertexBuffer()->size(), 1, 0, 0);
+		}
 	}
 
 	vkCmdEndRenderPass(activeCmdBuffer);
