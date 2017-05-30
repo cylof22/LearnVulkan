@@ -5,8 +5,7 @@ VulkanHardwareIndexBuffer::VulkanHardwareIndexBuffer(const VkPhysicalDevice * pG
 	: m_size(indexSize)
 {
 	VulkanMemoryBufferMgr::get()->createIndexBuffer(*pGPU, device, pIndexData, indexSize, m_indexBuffer, m_indexMemory);
-
-
+	m_size = indexSize / sizeof(uint16_t);
 }
 
 VulkanHardwareIndexBuffer::~VulkanHardwareIndexBuffer()

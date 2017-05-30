@@ -5,7 +5,7 @@
 #include <gli\load.hpp>
 #include <gli\texture2d.hpp>
 
-VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice& device, 
+VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDevice, 
 	const VkCommandPool& rCmdPool, const char* pData, uint32_t size,
 	VkImageUsageFlags imageUsage)
 {
@@ -40,12 +40,12 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice& dev
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_PREINITIALIZED;
 	imageInfo.tiling = VK_IMAGE_TILING_LINEAR;
 
-	res = vkCreateImage(device.getGraphicDevice(), &imageInfo, nullptr, &m_rImage);
+	res = vkCreateImage(pDevice->getGraphicDevice(), &imageInfo, nullptr, &m_rImage);
 	assert(res == VK_SUCCESS);
 
 	// check the memory requirements
 	VkMemoryRequirements memoryRequirements;
-	vkGetImageMemoryRequirements(device.getGraphicDevice(), m_rImage, &memoryRequirements);
+	vkGetImageMemoryRequirements(pDevice->getGraphicDevice(), m_rImage, &memoryRequirements);
 
 	// create the device memory
 	VkMemoryAllocateInfo imageAllocateInfo = {};
@@ -55,14 +55,10 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice& dev
 	imageAllocateInfo.memoryTypeIndex = 0;
 
 	// check the required memory type
-	VulkanMemoryMgr::get()->memoryTypeFromProperties(device.getGPU(), memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+	VulkanMemoryMgr::get()->memoryTypeFromProperties(pDevice->getGPU(), memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 		imageAllocateInfo.memoryTypeIndex);
 
-	res = vkAllocateMemory(device.getGraphicDevice(), &imageAllocateInfo, nullptr, &m_rMemory);
-	assert(res == VK_SUCCESS);
-
-	// bind the image device memory
-	res = vkBindImageMemory(device.getGraphicDevice(), m_rImage, m_rMemory, 0);
+	res = vkAllocateMemory(pDevice->getGraphicDevice(), &imageAllocateInfo, nullptr, &m_rMemory);
 	assert(res == VK_SUCCESS);
 
 	// populate the device memory
@@ -72,26 +68,31 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice& dev
 	subResouce.arrayLayer = 0;
 
 	VkSubresourceLayout layout;
-	uint8_t *pMappedData;
-	vkGetImageSubresourceLayout(device.getGraphicDevice(), m_rImage, &subResouce, &layout);
+	vkGetImageSubresourceLayout(pDevice->getGraphicDevice(), m_rImage, &subResouce, &layout);
 
-	res = vkMapMemory(device.getGraphicDevice(), m_rMemory, 0, imageAllocateInfo.allocationSize, 0, (void**)&pMappedData);
+	uint8_t *pMappedData;
+	res = vkMapMemory(pDevice->getGraphicDevice(), m_rMemory, 0, imageAllocateInfo.allocationSize, 0, (void**)&pMappedData);
 	assert(res == VK_SUCCESS);
 
 	// Why not use memcpy directly?
-	uint8_t* offsetData = (uint8_t*)pData;
+	uint8_t* offsetData = (uint8_t*)image2D.data();
 	for (uint32_t y = 0; y < image2D.extent()[0]; ++y)
 	{
 		size_t imageSize = image2D.extent()[1] * 4;
 		memcpy(pMappedData, offsetData, imageSize);
 
+		offsetData += imageSize;
 		pMappedData += layout.rowPitch;
 	}
-	vkUnmapMemory(device.getGraphicDevice(), m_rMemory);
+	vkUnmapMemory(pDevice->getGraphicDevice(), m_rMemory);
+
+	// bind the image device memory
+	res = vkBindImageMemory(pDevice->getGraphicDevice(), m_rImage, m_rMemory, 0);
+	assert(res == VK_SUCCESS);
 
 	// use cmd buffer to convert the imagelayout to shader_read optimally
 	VkCommandBuffer texturelayoutBuffer;
-	VkCommandBufferMgr::get()->createCommandBuffer(&device.getGraphicDevice(), rCmdPool, &texturelayoutBuffer);
+	VkCommandBufferMgr::get()->createCommandBuffer(&pDevice->getGraphicDevice(), rCmdPool, &texturelayoutBuffer);
 	VkCommandBufferMgr::get()->beginCommandBuffer(&texturelayoutBuffer);
 	// How to define subresource range as a input parameter
 	VkImageSubresourceRange textureSubResourceRange = {};
@@ -112,7 +113,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice& dev
 	fenceInfo.pNext = nullptr;
 	fenceInfo.flags = 0;
 
-	vkCreateFence(device.getGraphicDevice(), &fenceInfo, nullptr, &textureFence);
+	vkCreateFence(pDevice->getGraphicDevice(), &fenceInfo, nullptr, &textureFence);
 
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -120,11 +121,11 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice& dev
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers = &texturelayoutBuffer;
 
-	VkCommandBufferMgr::get()->submitCommandBuffer(device.getGraphicQueue(), &texturelayoutBuffer, &submitInfo, textureFence);
-	vkWaitForFences(device.getGraphicDevice(), 1, &textureFence, VK_TRUE, UINT64_MAX);
+	VkCommandBufferMgr::get()->submitCommandBuffer(pDevice->getGraphicQueue(), &texturelayoutBuffer, &submitInfo, textureFence);
+	vkWaitForFences(pDevice->getGraphicDevice(), 1, &textureFence, VK_TRUE, UINT64_MAX);
 
-	vkDestroyFence(device.getGraphicDevice(), textureFence, nullptr);
-	VkCommandBufferMgr::get()->destroyCommandBuffer(&device.getGraphicDevice(), rCmdPool, &texturelayoutBuffer);
+	vkDestroyFence(pDevice->getGraphicDevice(), textureFence, nullptr);
+	VkCommandBufferMgr::get()->destroyCommandBuffer(&pDevice->getGraphicDevice(), rCmdPool, &texturelayoutBuffer);
 
 	// create the image sampler
 	VkSamplerCreateInfo samplerInfo = {};
@@ -147,12 +148,12 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice& dev
 	samplerInfo.anisotropyEnable = VK_FALSE;
 	samplerInfo.maxAnisotropy = 1;
 
-	res = vkCreateSampler(device.getGraphicDevice(), &samplerInfo, nullptr, &m_rSampler);
+	res = vkCreateSampler(pDevice->getGraphicDevice(), &samplerInfo, nullptr, &m_rSampler);
 	assert(res == VK_SUCCESS);
 
 	// create the image view
 	VkImageViewCreateInfo textureViewInfo = {};
-	textureViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+	textureViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	textureViewInfo.pNext = nullptr;
 	textureViewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
 	textureViewInfo.format = vkTextureFormat;
@@ -164,8 +165,12 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice& dev
 	textureViewInfo.flags = 0;
 	textureViewInfo.image = m_rImage;
 
-	res = vkCreateImageView(device.getGraphicDevice(), &textureViewInfo, nullptr, &m_rView);
+	res = vkCreateImageView(pDevice->getGraphicDevice(), &textureViewInfo, nullptr, &m_rView);
 	assert(res == VK_SUCCESS);
+
+	m_rImageDescriptor.sampler = m_rSampler;
+	m_rImageDescriptor.imageView = m_rView;
+	m_rImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
 } 
 
 VulkanHardwareTextureBuffer::~VulkanHardwareTextureBuffer()

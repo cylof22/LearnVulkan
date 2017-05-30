@@ -6,10 +6,13 @@ class VulkanDevice;
 class VulkanHardwareTextureBuffer
 {
 public:
-	VulkanHardwareTextureBuffer(const VulkanDevice& rDevice, const VkCommandPool& rCmdPool,
+	VulkanHardwareTextureBuffer(const VulkanDevice* rDevice, const VkCommandPool& rCmdPool,
 		const char* pData,  uint32_t size, 
 		VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT);
 	~VulkanHardwareTextureBuffer();
+
+	VkDescriptorImageInfo& getDescriptorInfo() { return m_rImageDescriptor; }
+
 private:
 	VkImage m_rImage;
 	VkImageView m_rView;

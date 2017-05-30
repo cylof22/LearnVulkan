@@ -31,7 +31,10 @@ public:
 	void addRenderable(VulkanRenderable* renderEntity, const VkPipeline& pipeline, const VkPipelineLayout& layout);
 
 	const VkCommandPool& getCmdPool() const { return m_cmdPool; }
-
+	const VkRenderPass& getRenderPass() const { return m_renderPass; }
+	VkDescriptorPool& getDescriptorPool() { return m_descriptorPool; }
+	VulkanPipeline* getGraphicPipeline() const { return m_pPipeline; }
+	
 protected:
 	bool reInit();
 private:

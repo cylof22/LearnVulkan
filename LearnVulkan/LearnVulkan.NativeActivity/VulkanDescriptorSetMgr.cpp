@@ -1,5 +1,7 @@
 #include "VulkanDescriptorSetMgr.h"
 #include "VulkanRenderable.h"
+#include "VulkanHardwareTextureBuffer.h"
+#include "VulkanHardwareUniformBuffer.h"
 
 VulkanDescriptorSetMgr* VulkanDescriptorSetMgr::m_pMgr = nullptr;
 VulkanDescriptorSetMgr * VulkanDescriptorSetMgr::get()
@@ -27,7 +29,8 @@ VkResult VulkanDescriptorSetMgr::createDescriptorSetLayout(const VkDevice& graph
 	std::vector<VkDescriptorSetLayoutBinding> layoutBindings;
 
 	// Use the renderable's program information to create the descriptor set layout
-	std::shared_ptr<VulkanGpuProgram> rVertexShader = pRenderEntity->getVertexShader();
+	// Remove because the updation is done by push_constant
+	/*std::shared_ptr<VulkanGpuProgram> rVertexShader = pRenderEntity->getVertexShader();
 	if (rVertexShader)
 	{
 		VkDescriptorSetLayoutBinding vertexUniformBinding;
@@ -38,10 +41,10 @@ VkResult VulkanDescriptorSetMgr::createDescriptorSetLayout(const VkDevice& graph
 		vertexUniformBinding.pImmutableSamplers = nullptr;
 
 		layoutBindings.emplace_back(vertexUniformBinding);
-	}
+	}*/
 
-	/*std::shared_ptr<VulkanGpuProgram> rFragmentShader = pRenderEntity->getFragmentShader();
-	if (rFragmentShader)
+	std::shared_ptr<VulkanGpuProgram> rFragmentShader = pRenderEntity->getFragmentShader();
+	if (rFragmentShader && pRenderEntity->getTextureBuffer())
 	{
 		VkDescriptorSetLayoutBinding textureBinding;
 		textureBinding.binding = 1;
@@ -51,7 +54,7 @@ VkResult VulkanDescriptorSetMgr::createDescriptorSetLayout(const VkDevice& graph
 		textureBinding.pImmutableSamplers = nullptr;
 
 		layoutBindings.emplace_back(textureBinding);
-	}*/
+	}
 
 	VkDescriptorSetLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
@@ -81,20 +84,43 @@ VkResult VulkanDescriptorSetMgr::createDescriptorSet(const VkDevice& graphicDevi
 	return res;
 }
 
-VkResult VulkanDescriptorSetMgr::updateDescriptorSetbyUniformBuffer(const VkDevice& graphicDevice, const VkDescriptorSet& shaderDescriptorSet, const VkDescriptorBufferInfo& bufferInfo)
+VkResult VulkanDescriptorSetMgr::updateDescriptorSetbyRenderableEntity(const VkDevice& graphicDevice, const VkDescriptorSet& shaderDescriptorSet,
+	const VulkanRenderable* pRenderable)
 {
 	VkResult res = VK_RESULT_MAX_ENUM;
 	
-	VkWriteDescriptorSet bufferUpdateInfo = {};
-	bufferUpdateInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-	bufferUpdateInfo.pNext = nullptr;
-	bufferUpdateInfo.dstSet = shaderDescriptorSet;
-	bufferUpdateInfo.descriptorCount = 1;
-	bufferUpdateInfo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
-	bufferUpdateInfo.pBufferInfo = &bufferInfo;
-	bufferUpdateInfo.dstArrayElement = 0;
-	bufferUpdateInfo.dstBinding = 0;
+	std::vector<VkWriteDescriptorSet> bufferUpdateInfoSet;
 
-	vkUpdateDescriptorSets(graphicDevice, 1, &bufferUpdateInfo, 0, nullptr);
+	// Remove this bind because the updation of the uniform buffer is done by push_constant
+	/*if (pRenderable->getUniformBuffer())
+	{
+		VkWriteDescriptorSet uniformBufferUpdateInfo = {};
+		uniformBufferUpdateInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		uniformBufferUpdateInfo.pNext = nullptr;
+		uniformBufferUpdateInfo.dstSet = shaderDescriptorSet;
+		uniformBufferUpdateInfo.descriptorCount = 1;
+		uniformBufferUpdateInfo.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		uniformBufferUpdateInfo.pBufferInfo = &pRenderable->getUniformBuffer()->getDesriptorInfo();
+		uniformBufferUpdateInfo.dstArrayElement = 0;
+		uniformBufferUpdateInfo.dstBinding = 0;
+		bufferUpdateInfoSet.emplace_back(uniformBufferUpdateInfo);
+	}*/
+	
+	if (pRenderable->getTextureBuffer())
+	{
+		VkWriteDescriptorSet textureBufferUpdateInfo = {};
+		textureBufferUpdateInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		textureBufferUpdateInfo.pNext = nullptr;
+		textureBufferUpdateInfo.dstSet = shaderDescriptorSet;
+		textureBufferUpdateInfo.descriptorCount = 1;
+		textureBufferUpdateInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		textureBufferUpdateInfo.pImageInfo = &pRenderable->getTextureBuffer()->getDescriptorInfo();
+		textureBufferUpdateInfo.dstArrayElement = 0;
+		textureBufferUpdateInfo.dstBinding = 1;
+		bufferUpdateInfoSet.emplace_back(textureBufferUpdateInfo);
+	}
+	
+
+	vkUpdateDescriptorSets(graphicDevice, bufferUpdateInfoSet.size(), bufferUpdateInfoSet.data(), 0, nullptr);
 	return res;
 }

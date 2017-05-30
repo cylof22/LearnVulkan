@@ -158,7 +158,7 @@ bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRend
 	VkPipelineLayoutCreateInfo layoutInfo = {};
 	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	layoutInfo.pNext = nullptr;
-	layoutInfo.setLayoutCount = 0;// pRenderable->getDescriptorSetLayout().size();
+	layoutInfo.setLayoutCount = pRenderable->getDescriptorSetLayout().size();
 	layoutInfo.pSetLayouts = pRenderable->getDescriptorSetLayout().data();
 	layoutInfo.pushConstantRangeCount = 1;
 	layoutInfo.pPushConstantRanges = &mvpPushRange;

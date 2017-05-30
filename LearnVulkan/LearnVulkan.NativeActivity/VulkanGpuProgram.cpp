@@ -12,6 +12,7 @@ VulkanGpuProgram::VulkanGpuProgram(const VkDevice& graphicDevice, const std::str
 		data.c_str(), data.size(), kind, fileName.c_str(), options);
 
 	shaderc_compilation_status compileRes = module.GetCompilationStatus();
+	assert(compileRes == shaderc_compilation_status_success);
 	if (compileRes == shaderc_compilation_status_success) {
 		std::vector<uint32_t> result(module.cbegin(), module.cend());
 

@@ -21,7 +21,19 @@
 #include "common\vulkan_wrapper.h"
 #include "VulkanApplication.h"
 #include "VulkanRenderer.h"
+#include "VulkanHardwareVertexBuffer.h"
+#include "VulkanHardwareIndexBuffer.h"
+#include "VulkanHardwareUniformBuffer.h"
 #include "VulkanHardwareTextureBuffer.h"
+#include "VulkanGpuProgram.h"
+#include "VulkanDevice.h"
+#include "VulkanRenderable.h"
+#include "VulkanPipelineState.h"
+#include "VulkanPipeline.h"
+#include "VulkanDescriptorSetMgr.h"
+#include <glm\glm.hpp>
+#include <glm\gtc\matrix_transform.hpp>
+
 //#include <vector>
 #include <thread>
 
@@ -51,6 +63,153 @@ struct engine {
 	struct saved_state state;
 };
 
+void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer, ANativeWindow* pWnd, AAssetManager* pAssetMgr)
+{
+	// Maybe a bug of the driver, put the vertex data behind the program will cause crash
+	/*const float vertexData[] = { 0.0f, -0.5f, 0.0f, 1.0f,
+	1.0f, 0.0f, 0.0f, 1.0f,
+	0.5f, 0.5f, 0.0f, 1.0f,
+	0.0f, 0.0f, 1.0f, 1.0f,
+	-0.5f, 0.5f, 0.0f, 1.0f,
+	0.0f, 1.0f, 0.0f, 1.0f,
+	-1.0f, -0.5f, 0.0f, 1.0f,
+	1.0f, 1.0f, 0.0f, 0.0f };*/
+
+	const float vertexData[] = { 
+		1.f,-1.f,-1.f, 1.f, // 0
+		0.f, 0.f,
+		1.f, 1.f,-1.f, 1.f, // 1
+		0.f, 1.f,
+		-1.f,-1.f,-1.f, 1.f, // 2
+		1.f, 1.f,
+		-1.f, 1.f,-1.f, 1.f, // 3
+		1.f, 0.f,
+
+		1.f,-1.f, 1.f, 1.f, // 4
+		0.f, 0.f,
+		1.f, 1.f, 1.f, 1.f, // 5
+		1.f, 0.f,
+		-1.f,-1.f, 1.f, 1.f, // 6
+		1.f, 1.f,
+		-1.f, 1.f, 1.f, 1.f, // 7
+		1.f, 0.f,
+	};
+
+	// Only used for testing
+	std::shared_ptr<VulkanHardwareVertexBuffer> vertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(pDevice->getGPU(), pDevice->getGraphicDevice(),
+		(void*)vertexData, sizeof(vertexData), sizeof(float) * 6);
+
+	const uint16_t indexData[] = { 
+		0, 2, 3, 3, 1, 0,
+		4, 5, 7, 7, 6, 4,
+		/*0, 1, 5, 5, 4, 0,
+		2, 6, 7, 7, 3, 2,
+		0, 4, 6, 6, 2, 0,
+		5, 1, 3, 3, 7, 5,*/
+	};
+
+	std::shared_ptr<VulkanHardwareIndexBuffer> indexBuffer = std::make_shared<VulkanHardwareIndexBuffer>(pDevice->getGPU(), pDevice->getGraphicDevice(),
+		(void*)indexData, sizeof(indexData));
+
+	const std::string vertShaderText =
+		"#version 450\n"
+		"layout(push_constant) uniform mvpBuffer {\n"
+		"	mat4 mvp;\n"
+		"} transform;\n"
+		"layout(location = 0) in vec4 pos;\n"
+		"layout(location = 1) in vec2 i_UV;\n"
+		"layout(location = 0) out vec2 o_UV;\n"
+		"void main() {\n"
+		"   o_UV = i_UV;\n"
+		"   gl_Position = transform.mvp * pos;\n"
+		"}\n";
+
+	std::shared_ptr<VulkanGpuProgram> vertexShaderProg = std::make_shared<VulkanGpuProgram>(pDevice->getGraphicDevice(),
+		"vertexshader.vert", shaderc_glsl_vertex_shader, vertShaderText);
+
+	const std::string fragShaderText =
+		"#version 450\n"
+		"layout(binding = 1) uniform sampler2D tex;"
+		"layout(location = 0) in vec2 o_UV;\n"
+		"layout(location = 0) out vec4 fragColor;\n"
+		"void main() {\n"
+		"   fragColor = texture(tex, o_UV);\n"
+		"}\n";
+
+	std::shared_ptr<VulkanGpuProgram> fragShaderProg = std::make_shared<VulkanGpuProgram>(pDevice->getGraphicDevice(),
+		"fragshader.vert", shaderc_glsl_fragment_shader, fragShaderText);
+
+	VulkanRenderable* renderEntity = new VulkanRenderable;
+	renderEntity->setVertexBuffer(vertexBuffer);
+	renderEntity->setIndexBuffer(indexBuffer);
+	renderEntity->setVertexShader(vertexShaderProg);
+	renderEntity->setFragmentShader(fragShaderProg);
+	renderEntity->setTopologyType(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+
+	glm::mat4 model, view, projection, clip;
+	model = glm::mat4(1.0f);
+	projection = glm::ortho(-5.f, 5.0f, -5.0f, 5.0f, -5.0f, 5.0f);
+	view = glm::mat4(1.0f); /* glm::lookAt(
+							glm::vec3(0, 3, -10),		// Camera is in World Space
+							glm::vec3(0, 0, 0),		// and looks at the origin
+							glm::vec3(0, -1, 0)		// Head is up
+							);*/
+
+	model = glm::translate(model, glm::vec3(-1.5f, 1.5f, -1.5f));
+
+	// Vulkan clip space has inverted Y and half Z. 
+	// clang-format off 
+	clip = glm::mat4(1.0f); /* glm::mat4(1.0f, 0.0f, 0.0f, 0.0f,
+							0.0f,-1.0f, 0.0f, 0.0f,
+							0.0f, 0.0f, 0.5f, 0.0f,
+							0.0f, 0.0f, 0.5f, 1.0f);*/
+
+
+	glm::mat4 imvp = clip * projection * view * model;
+
+	std::shared_ptr<VulkanHardwareUniformBuffer> mvpUniformBuffer = std::make_shared<VulkanHardwareUniformBuffer>(pDevice->getGPU(),
+		pDevice->getGraphicDevice(), &imvp, sizeof(imvp));
+
+	renderEntity->setUniformBuffer(mvpUniformBuffer);
+
+	std::shared_ptr<VulkanHardwareTextureBuffer> rTextureBuffer = nullptr;
+	AAsset* pTextureAsset = AAssetManager_open(pAssetMgr, "LearningVulkan.ktx", AASSET_MODE_UNKNOWN);
+	if (pTextureAsset)
+	{
+		off_t imageSize = AAsset_getLength(pTextureAsset);
+
+		char* buffer = new char[imageSize];
+
+		off_t readSize = AAsset_read(pTextureAsset, (void*)buffer, imageSize);
+		assert(imageSize == readSize);
+
+		rTextureBuffer = std::make_shared<VulkanHardwareTextureBuffer>(pDevice, pRenderer->getCmdPool(), buffer, readSize);
+
+		delete[]buffer;
+	}
+
+	if (rTextureBuffer)
+		renderEntity->setTextureBuffer(rTextureBuffer);
+
+	std::vector<VkDescriptorSetLayout> shaderParams;
+	VulkanDescriptorSetMgr::get()->createDescriptorSetLayout(pDevice->getGraphicDevice(), renderEntity, shaderParams);
+
+	VkDescriptorSet renderDescriptorSet;
+	VulkanDescriptorSetMgr::get()->createDescriptorSet(pDevice->getGraphicDevice(), pRenderer->getDescriptorPool(), shaderParams, renderDescriptorSet);
+
+	VulkanDescriptorSetMgr::get()->updateDescriptorSetbyRenderableEntity(pDevice->getGraphicDevice(), renderDescriptorSet, renderEntity);
+
+	renderEntity->setDescriptorSet(renderDescriptorSet);
+	renderEntity->setDescriptorSetLayout(shaderParams);
+
+	VulkanGraphicPipelineState pipelineState;
+	pipelineState.activeRenderPass = pRenderer->getRenderPass();
+	VkPipeline renderPipeline = VK_NULL_HANDLE;
+	VkPipelineLayout renderPipelineLayout = VK_NULL_HANDLE;
+	pRenderer->getGraphicPipeline()->createGraphicPipeline(pWnd, renderEntity, pipelineState, renderPipeline, renderPipelineLayout);
+
+	pRenderer->addRenderable(renderEntity, renderPipeline, renderPipelineLayout);
+}
 /**
 * Initialize an EGL context for the current display.
 */
@@ -78,22 +237,7 @@ static int engine_init_display(struct engine* engine) {
 
 	engine->m_pApp->createVulkanInstance(layerNames, extensionNames, engine->app->window);
 
-	AAsset* pTextureAsset = AAssetManager_open(engine->app->activity->assetManager, "LearningVulkan.ktx", AASSET_MODE_UNKNOWN);
-	if (pTextureAsset)
-	{
-		off_t imageSize = AAsset_getLength(pTextureAsset);
-
-		char* buffer = new char[imageSize];
-
-		off_t readSize = AAsset_read(pTextureAsset, (void*)buffer, imageSize);
-		assert(imageSize == readSize);
-
-
-		VulkanHardwareTextureBuffer* pTexture = new VulkanHardwareTextureBuffer(*engine->m_pApp->getDevice(), engine->m_pApp->getRender()->getCmdPool(), 
-			buffer, readSize);
-
-		delete[]buffer;
-	}
+	addRenderableEntity(engine->m_pApp->getDevice(), engine->m_pApp->getRender(), engine->app->window, engine->app->activity->assetManager);
 
 	return 0;
 }

@@ -6,6 +6,7 @@
 class VulkanHardwareVertexBuffer;
 class VulkanHardwareIndexBuffer;
 class VulkanHardwareUniformBuffer;
+class VulkanHardwareTextureBuffer;
 class VulkanGpuProgram;
 
 class VulkanRenderable
@@ -17,6 +18,7 @@ public:
 	void setVertexBuffer(std::shared_ptr<VulkanHardwareVertexBuffer> vertexBuffer) { m_rVertexBuf = vertexBuffer; }
 	void setIndexBuffer(std::shared_ptr<VulkanHardwareIndexBuffer> indexBuffer) { m_rIndexBuf = indexBuffer; }
 	void setUniformBuffer(std::shared_ptr<VulkanHardwareUniformBuffer> uniformBuffer) { m_rUniformBuffer = uniformBuffer; }
+	void setTextureBuffer(std::shared_ptr<VulkanHardwareTextureBuffer> textureBuffer) { m_rTextureBuffer = textureBuffer; }
 
 	void setVertexShader(std::shared_ptr<VulkanGpuProgram> vertexShader) { m_rVertexShader = vertexShader; }
 	void setFragmentShader(std::shared_ptr<VulkanGpuProgram> fragShader) { m_rFragmentShader = fragShader; }
@@ -33,6 +35,7 @@ public:
 	const std::shared_ptr<VulkanHardwareVertexBuffer> getVertexBuffer() const { return m_rVertexBuf; }
 	const std::shared_ptr<VulkanHardwareIndexBuffer> getIndexBuffer() const { return m_rIndexBuf; }
 	const std::shared_ptr<VulkanHardwareUniformBuffer> getUniformBuffer() const { return m_rUniformBuffer; }
+	const std::shared_ptr<VulkanHardwareTextureBuffer> getTextureBuffer() const { return m_rTextureBuffer; }
 
 	VkPrimitiveTopology getTopologyType() const { return m_topologyType; };
 	bool isIndexRestart() const { return m_bIsIndexRestart; }
@@ -55,4 +58,5 @@ private:
 	std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
 
 	std::shared_ptr<VulkanHardwareUniformBuffer> m_rUniformBuffer;
+	std::shared_ptr<VulkanHardwareTextureBuffer> m_rTextureBuffer;
 };
