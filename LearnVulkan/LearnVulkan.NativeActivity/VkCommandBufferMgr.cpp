@@ -72,20 +72,21 @@ VkResult VkCommandBufferMgr::submitCommandBuffer(const VkQueue & queue, const Vk
 	VkResult res = VK_SUCCESS;
 	if (pInfo)
 		vkQueueSubmit(queue, 1, pInfo, fence);
-
-	VkSubmitInfo info = {};
-	info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	info.pNext = nullptr;
-	info.waitSemaphoreCount = 0;
-	info.pWaitSemaphores = nullptr;
-	info.pWaitDstStageMask = nullptr;
-	info.commandBufferCount = (uint32_t)(sizeof(pCmdBuffer) / sizeof(VkCommandBuffer));
-	info.pCommandBuffers = pCmdBuffer;
-	info.signalSemaphoreCount = 0;
-	info.pSignalSemaphores = nullptr;
-
-	vkQueueSubmit(queue, 1, &info, fence);
-
+	else
+	{
+		VkSubmitInfo info = {};
+		info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+		info.pNext = nullptr;
+		info.waitSemaphoreCount = 0;
+		info.pWaitSemaphores = nullptr;
+		info.pWaitDstStageMask = nullptr;
+		info.commandBufferCount = (uint32_t)(sizeof(pCmdBuffer) / sizeof(VkCommandBuffer));
+		info.pCommandBuffers = pCmdBuffer;
+		info.signalSemaphoreCount = 0;
+		info.pSignalSemaphores = nullptr;
+		vkQueueSubmit(queue, 1, &info, fence);
+	}
+	
 	res = vkQueueWaitIdle(queue);
 	return res;
 }
