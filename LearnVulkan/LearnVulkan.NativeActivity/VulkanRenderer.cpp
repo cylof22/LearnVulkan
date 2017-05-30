@@ -15,8 +15,6 @@
 #include <glm\glm.hpp>
 #include <glm\gtc\matrix_transform.hpp>
 
-static uint32_t indexSize = 0;
-
 VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice) : m_pGraphicDevice(pDevice), m_pInstance(pInstance),  m_pPipeline(nullptr)
 	, m_pWnd(nullptr), m_activeCommandBufferId(0)
 {
@@ -130,8 +128,6 @@ bool VulkanRenderer::init(ANativeWindow* pWnd)
 
 	std::shared_ptr<VulkanHardwareIndexBuffer> indexBuffer = std::make_shared<VulkanHardwareIndexBuffer>(m_pGraphicDevice->getGPU(), m_pGraphicDevice->getGraphicDevice(),
 		(void*)indexData, sizeof(indexData));
-
-	indexSize = sizeof(indexData) / sizeof(uint16_t);
 
 	const std::string vertShaderText =
 		"#version 450\n"
@@ -665,7 +661,7 @@ void VulkanRenderer::update(bool includeDepth)
 		//vkCmdDraw(cmdBuffer, 6, 1, 0, 0);
 		// synchronize the memory object
 
-		vkCmdDrawIndexed(activeCmdBuffer, indexSize, 1, 0, 0, 0);
+		vkCmdDrawIndexed(activeCmdBuffer, std::get<0>(rRenderInfo)->getIndexBuffer()->size(), 1, 0, 0, 0);
 	}
 
 	vkCmdEndRenderPass(activeCmdBuffer);

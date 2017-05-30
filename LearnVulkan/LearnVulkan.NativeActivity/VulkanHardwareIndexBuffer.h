@@ -8,8 +8,10 @@ public:
 	~VulkanHardwareIndexBuffer();
 
 	const VkBuffer& getBuffer() { return m_indexBuffer; }
+	const uint32_t size() const { return m_size; }
 
 private:
 	VkBuffer m_indexBuffer;
 	VkDeviceMemory m_indexMemory;
+	uint32_t m_size;
 };
