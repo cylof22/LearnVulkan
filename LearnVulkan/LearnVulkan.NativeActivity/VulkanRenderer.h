@@ -51,7 +51,7 @@ private:
 
 	std::vector<VkFramebuffer> m_framebuffers;
 	std::vector<VkCommandBuffer> m_cmdDraws;
-	VkFence m_cmdFence;
+	std::vector<VkFence> m_cmdFences;
 
 	VkFormat m_depthFormat;
 	VkImageView m_depthImageView;

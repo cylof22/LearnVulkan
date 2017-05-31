@@ -37,12 +37,6 @@ VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice
 	drawSemaphoreInfo.flags = 0;
 
 	vkCreateSemaphore(m_pGraphicDevice->getGraphicDevice(), &drawSemaphoreInfo, nullptr, &m_drawCompleteSemaphore);
-
-	VkFenceCreateInfo uniformFenceInfo = {};
-	uniformFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	uniformFenceInfo.pNext = 0;
-	uniformFenceInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
-	vkCreateFence(m_pGraphicDevice->getGraphicDevice(), &uniformFenceInfo, nullptr, &m_cmdFence);
 }
 
 VulkanRenderer::~VulkanRenderer()
@@ -243,10 +237,10 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 void VulkanRenderer::render()
 {
 	// Only for temporary: If not, the whole background buffer will be messy
-	sleep(1);
+	//sleep(1);
 	VkResult res = VK_SUCCESS;
 
-	vkDeviceWaitIdle(m_pGraphicDevice->getGraphicDevice());
+	//vkDeviceWaitIdle(m_pGraphicDevice->getGraphicDevice());
 
 	uint32_t activeColorBufferId = m_activeCommandBufferId;
 
@@ -266,7 +260,7 @@ void VulkanRenderer::render()
 	submitInfo.pSignalSemaphores = &m_drawCompleteSemaphore;
 
 	// queue the command buffer for execution
-	VkCommandBufferMgr::get()->submitCommandBuffer(m_pGraphicDevice->getGraphicQueue(), &m_cmdDraws[activeColorBufferId], &submitInfo, m_cmdFence);
+	VkCommandBufferMgr::get()->submitCommandBuffer(m_pGraphicDevice->getGraphicQueue(), &m_cmdDraws[activeColorBufferId], &submitInfo, m_cmdFences[activeColorBufferId]);
 
 	// present the image in the window
 	VkPresentInfoKHR present = {};
@@ -410,12 +404,23 @@ bool VulkanRenderer::createCommandBuffers(bool includeDepth)
 
 	VkResult res = VK_SUCCESS;
 	m_cmdDraws.resize(m_framebuffers.size());
+	m_cmdFences.resize(m_framebuffers.size());
 
 	for (uint32_t i = 0; i < m_cmdDraws.size(); i++)
 	{
 		VkCommandBuffer cmdBuffer;
 		res = VkCommandBufferMgr::get()->createCommandBuffer(&m_pGraphicDevice->getGraphicDevice(), m_cmdPool, &cmdBuffer);
 		m_cmdDraws[i] = cmdBuffer;
+
+		VkFenceCreateInfo fenceCreateInfo = {};
+		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+		fenceCreateInfo.flags = 0;
+		VkFence fence;
+		res = vkCreateFence(m_pGraphicDevice->getGraphicDevice(), &fenceCreateInfo, nullptr, &fence);
+		assert(res == VK_SUCCESS);
+
+		m_cmdFences[i] = fence;
+
 	}
 	return true;
 }
@@ -432,6 +437,8 @@ inline glm::mat4 vulkanStyleProjection(const glm::mat4 &proj)
 
 void VulkanRenderer::update(bool includeDepth)
 {
+	static bool isStart = true;
+
 	static glm::mat4 mvp = glm::mat4(1.0f);
 	static float transf = 0.0f;
 	static float rot = 0.0f;
@@ -456,25 +463,28 @@ void VulkanRenderer::update(bool includeDepth)
 
 	glm::mat4 model = glm::mat4(1.0f); 
 
-	rot += 10.f;
+	rot += 0.005f;
 
 	model = glm::rotate(model, rot, glm::vec3(0.0f, 1.0f, 0.0f)) 
 		* glm::rotate(model, rot, glm::vec3(1.0f, 1.0f, 1.0f));
 
 	mvp = projection * view * model;
 
+	// wait for the previous buffer finish the
+	if (vkGetFenceStatus(m_pGraphicDevice->getGraphicDevice(), m_cmdFences[m_activeCommandBufferId]) == VK_SUCCESS)
+	{
+		vkWaitForFences(m_pGraphicDevice->getGraphicDevice(), 1, &m_cmdFences[m_activeCommandBufferId], VK_TRUE, INT64_MAX);
+		vkResetFences(m_pGraphicDevice->getGraphicDevice(), 1, &m_cmdFences[m_activeCommandBufferId]);
+	}
+	
 	VkResult res = VK_RESULT_MAX_ENUM;
-
-	vkWaitForFences(m_pGraphicDevice->getGraphicDevice(), 1, &m_cmdFence, VK_TRUE, INT64_MAX);
-	vkResetFences(m_pGraphicDevice->getGraphicDevice(), 1, &m_cmdFence);
-
 	const VkSwapchainKHR* pSwapChain = m_pSwapChain->getSwapChain();
 	res = vkAcquireNextImageKHR(m_pGraphicDevice->getGraphicDevice(), *pSwapChain, UINT64_MAX, m_presentCompleteSemaphore, VK_NULL_HANDLE, &m_activeCommandBufferId);
 
 	VkClearValue clearValues[2];
 	switch (m_activeCommandBufferId)
 	{
-	case 0:
+	/*case 0:
 		clearValues[0].color.float32[0] = 1.0f;
 		clearValues[0].color.float32[1] = 0.0f;
 		clearValues[0].color.float32[2] = 0.0f;
@@ -491,10 +501,10 @@ void VulkanRenderer::update(bool includeDepth)
 		clearValues[0].color.float32[1] = 0.0f;
 		clearValues[0].color.float32[2] = 1.0f;
 		clearValues[0].color.float32[3] = 1.0f;
-		break;
+		break;*/
 	default:
 		clearValues[0].color.float32[0] = 0.0f;
-		clearValues[0].color.float32[1] = 1.0f;
+		clearValues[0].color.float32[1] = 0.0f;
 		clearValues[0].color.float32[2] = 0.0f;
 		clearValues[0].color.float32[3] = 0.0f;
 	}
