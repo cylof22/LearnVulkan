@@ -121,6 +121,7 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <Content Include="assets\LearningVulkan.ktx" />
+    <Content Include="assets\Skybox_front5.png" />
     <Content Include="res\values\strings.xml" />
     <AntBuildXml Include="build.xml">
       <SubType>Designer</SubType>

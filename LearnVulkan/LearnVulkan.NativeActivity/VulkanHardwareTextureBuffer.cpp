@@ -4,21 +4,42 @@
 #include "VulkanDevice.h"
 #include <gli\load.hpp>
 #include <gli\texture2d.hpp>
+#include "Stb\stb_image.h"
 
 VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDevice, 
 	const VkCommandPool& rCmdPool, const char* pData, uint32_t size,
-	VkImageUsageFlags imageUsage)
+	VkImageUsageFlags imageUsage, bool isUseStb /*=false*/)
 {
-	gli::texture2d image2D(gli::load(pData, size));
+	uint32_t width, height, minMapLevels;
+	VkFormat vkTextureFormat;
+	uint8_t* pImageData;
 
-	assert(!image2D.empty());
+	if (!isUseStb)
+	{
+		gli::texture2d image2D(gli::load(pData, size));
 
-	uint32_t width = (uint32_t)image2D.extent()[0];
-	uint32_t height = (uint32_t)image2D.extent()[1];
-	uint32_t minMapLevels = (uint32_t)image2D.levels();
-	gli::gl GL(gli::gl::PROFILE_GL33);
-	gli::gl::format const gliFormat = GL.translate(image2D.format(), image2D.swizzles());
-	VkFormat vkTextureFormat = VulkanMemoryMgr::get()->imageFormatConvert(gliFormat);
+		assert(!image2D.empty());
+
+		width = (uint32_t)image2D.extent()[0];
+		height = (uint32_t)image2D.extent()[1];
+		minMapLevels = (uint32_t)image2D.levels();
+		gli::gl GL(gli::gl::PROFILE_GL33);
+		gli::gl::format const gliFormat = GL.translate(image2D.format(), image2D.swizzles());
+		vkTextureFormat = VulkanMemoryMgr::get()->imageFormatConvert(gliFormat);
+		pImageData = (uint8_t*)image2D.data();
+	}
+	else
+	{
+		int x, y, comp;
+		stbi_uc* pngData = stbi_load_from_memory((stbi_uc*)pData, size, &x, &y, &comp, 4);
+		
+		width = x;
+		height = y;
+		minMapLevels = 1;
+		vkTextureFormat = VK_FORMAT_R8G8B8A8_UNORM;
+		pImageData = (uint8_t*) pngData;
+	}
+	
 	VkResult res;
 
 	VkImageCreateInfo imageInfo = {};
@@ -26,10 +47,10 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 	imageInfo.pNext = nullptr;
 	imageInfo.imageType = VK_IMAGE_TYPE_2D;
 	imageInfo.format = vkTextureFormat;
-	imageInfo.extent.width = (uint32_t)image2D.extent()[0];
-	imageInfo.extent.height = (uint32_t)image2D.extent()[1];
+	imageInfo.extent.width = width;
+	imageInfo.extent.height = height;
 	imageInfo.extent.depth = 1;
-	imageInfo.mipLevels = (uint32_t)image2D.levels();
+	imageInfo.mipLevels = minMapLevels;
 	imageInfo.arrayLayers = 1;
 	imageInfo.samples = VK_SAMPLE_COUNT_1_BIT;
 	imageInfo.queueFamilyIndexCount = 0;
@@ -76,10 +97,10 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 
 	// Why not use memcpy directly?
 	//memcpy(pMappedData, image2D.data(), memoryRequirements.size);
-	uint8_t* offsetData = (uint8_t*)image2D.data();
-	for (uint32_t y = 0; y < image2D.extent()[0]; ++y)
+	uint8_t* offsetData = pImageData;
+	for (uint32_t y = 0; y < width; ++y)
 	{
-		size_t imageSize = image2D.extent()[1] * 4;
+		size_t imageSize = height * 4;
 		memcpy(pMappedData, offsetData, imageSize);
 
 		offsetData += imageSize;

@@ -8,7 +8,7 @@ class VulkanHardwareTextureBuffer
 public:
 	VulkanHardwareTextureBuffer(const VulkanDevice* rDevice, const VkCommandPool& rCmdPool,
 		const char* pData,  uint32_t size, 
-		VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT);
+		VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, bool isUseStb = false);
 	~VulkanHardwareTextureBuffer();
 
 	VkDescriptorImageInfo& getDescriptorInfo() { return m_rImageDescriptor; }

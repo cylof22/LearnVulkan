@@ -39,6 +39,9 @@
     <ClInclude Include="VulkanHardwareUniformBuffer.h" />
     <ClInclude Include="VulkanDescriptorSetMgr.h" />
     <ClInclude Include="VulkanHardwareTextureBuffer.h" />
+    <ClInclude Include="Stb\stb_image.h">
+      <Filter>Stb</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
@@ -63,6 +66,9 @@
     <ClCompile Include="VulkanHardwareUniformBuffer.cpp" />
     <ClCompile Include="VulkanDescriptorSetMgr.cpp" />
     <ClCompile Include="VulkanHardwareTextureBuffer.cpp" />
+    <ClCompile Include="Stb\stb_image.c">
+      <Filter>Stb</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
@@ -70,6 +76,9 @@
     </Filter>
     <Filter Include="common">
       <UniqueIdentifier>{a87d84c6-eaab-463f-a756-a7bca653ee12}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Stb">
+      <UniqueIdentifier>{1d5b19bd-0bb1-4c76-aade-ea6542c359d5}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
 </Project>
