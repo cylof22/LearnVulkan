@@ -137,7 +137,7 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 {
 	VkResult res = VK_SUCCESS;
 
-	m_depthFormat = VK_FORMAT_D16_UNORM;
+	m_depthFormat = VK_FORMAT_D24_UNORM_S8_UINT;
 	VkImageTiling depthTiling = VK_IMAGE_TILING_OPTIMAL;
 	VkFormatProperties props;
 	vkGetPhysicalDeviceFormatProperties(*m_pGraphicDevice->getGPU(), m_depthFormat, &props);
@@ -154,6 +154,8 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 	VkImageCreateInfo info = {};
 	info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
 	info.pNext = nullptr;
+	info.flags = 0;
+	info.imageType = VK_IMAGE_TYPE_2D;
 	info.format = m_depthFormat;
 	info.tiling = depthTiling;
 	info.extent.width = ANativeWindow_getWidth(pWnd);
@@ -167,7 +169,6 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 	info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 	info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	info.flags = 0;
 
 	VkImage depthImage;
 	res = vkCreateImage(m_pGraphicDevice->getGraphicDevice(), &info, nullptr, &depthImage);
@@ -198,17 +199,6 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 		}
 	}
 
-	// create the depth image view
-	VkCommandBuffer depthImageLayoutCmdBuffer;
-	res = VkCommandBufferMgr::get()->createCommandBuffer(&m_pGraphicDevice->getGraphicDevice(), m_cmdPool, &depthImageLayoutCmdBuffer);
-	res = VkCommandBufferMgr::get()->beginCommandBuffer(&depthImageLayoutCmdBuffer);
-	{
-		VulkanMemoryMgr::get()->imageLayoutConversion(depthImage, VK_IMAGE_ASPECT_DEPTH_BIT, 
-			VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, (VkAccessFlagBits)0, depthImageLayoutCmdBuffer);
-	}
-	res = VkCommandBufferMgr::get()->endCommandBuffer(&depthImageLayoutCmdBuffer);
-	res = VkCommandBufferMgr::get()->submitCommandBuffer(m_pGraphicDevice->getGraphicQueue(), &depthImageLayoutCmdBuffer, nullptr, m_renderFence);
-
 	VkImageViewCreateInfo depthImageViewInfo = {};
 	depthImageViewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	depthImageViewInfo.pNext = nullptr;
@@ -236,11 +226,7 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 // draw every frame
 void VulkanRenderer::render()
 {
-	// Only for temporary: If not, the whole background buffer will be messy
-	//sleep(1);
 	VkResult res = VK_SUCCESS;
-
-	//vkDeviceWaitIdle(m_pGraphicDevice->getGraphicDevice());
 
 	uint32_t activeColorBufferId = m_activeCommandBufferId;
 
