@@ -63,6 +63,105 @@ struct engine {
 	struct saved_state state;
 };
 
+#include "Stb\stb_image.h"
+
+void addSkyboxEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer, ANativeWindow* pWnd, AAssetManager* pAssetMgr)
+{
+	float skyboxGeometry[] = {
+		-1.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+		-1.0f, -1.0f, 0.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+		1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+		1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f
+	};
+	std::shared_ptr<VulkanHardwareVertexBuffer> skyboxVertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(pDevice->getGPU(), pDevice->getGraphicDevice(),
+		(void*)skyboxGeometry, sizeof(skyboxGeometry), sizeof(float) * 7);
+
+	const std::string skyboxVertexProg = 
+		"#version 450\n"
+		"layout(push_constant) uniform mvpBuffer {\n"
+		"	mat4 mvp;\n"
+		"} transform;\n"
+		"layout(location = 0) in vec4 pos;\n"
+		"layout(location = 1) in vec3 i_UV;\n"
+		"layout(location = 0) out vec3 o_UV;\n"
+		"void main() {\n"
+		"   o_UV = i_UV;\n"
+		"   gl_Position = pos;\n"
+		"}\n";
+
+	std::shared_ptr<VulkanGpuProgram> skyboxVertexShaderProg = std::make_shared<VulkanGpuProgram>(pDevice->getGraphicDevice(),
+		"skyboxVertexshader.vert", shaderc_glsl_vertex_shader, skyboxVertexProg);
+
+	const std::string skyboxFragmentProg = 
+		"#version 450\n"
+		"layout(binding = 1) uniform samplerCube tex;"
+		"layout(location = 0) in vec3 o_UV;\n"
+		"layout(location = 0) out vec4 fragColor;\n"
+		"void main() {\n"
+		"   fragColor = texture(tex, o_UV);\n"
+		"}\n";
+
+	std::shared_ptr<VulkanGpuProgram> skyboxFragShaderProg = std::make_shared<VulkanGpuProgram>(pDevice->getGraphicDevice(),
+		"fragshader.vert", shaderc_glsl_fragment_shader, skyboxFragmentProg);
+
+	VulkanRenderable* skyboxEntity = new VulkanRenderable;
+	skyboxEntity->setVertexBuffer(skyboxVertexBuffer);
+	skyboxEntity->setVertexShader(skyboxVertexShaderProg);
+	skyboxEntity->setFragmentShader(skyboxFragShaderProg);
+
+	std::vector<std::string> skyboxFiles;
+	skyboxFiles.emplace_back("Skybox_right1.png");
+	skyboxFiles.emplace_back("Skybox_left2.png");
+	skyboxFiles.emplace_back("Skybox_top3.png");
+	skyboxFiles.emplace_back("Skybox_bottom4.png");
+	skyboxFiles.emplace_back("Skybox_front5.png");
+	skyboxFiles.emplace_back("Skybox_back6.png");
+
+	std::vector<std::pair<char*, off_t>> skyboxImageData;
+	off_t size;
+	for (size_t i = 0; i < skyboxFiles.size(); i++)
+	{
+		AAsset* pTextureAsset = AAssetManager_open(pAssetMgr, skyboxFiles[i].c_str(), AASSET_MODE_UNKNOWN);
+
+		off_t imageSize = AAsset_getLength(pTextureAsset);
+
+		char* buffer = new char[imageSize];
+
+		off_t readSize = AAsset_read(pTextureAsset, (void*)buffer, imageSize);
+		assert(imageSize == readSize);
+		size = readSize;
+
+		skyboxImageData.emplace_back(buffer, size);
+	}
+
+	std::shared_ptr<VulkanHardwareTextureBuffer> rSkyboxTextureBuffer =
+		std::make_shared<VulkanHardwareTextureBuffer>(pDevice, pRenderer->getCmdPool(), skyboxImageData, size);
+		//std::make_shared<VulkanHardwareTextureBuffer>(pDevice, pRenderer->getCmdPool(), skyboxImageData[5].first, skyboxImageData[5].second, VK_IMAGE_USAGE_SAMPLED_BIT, true);
+
+	skyboxEntity->setTextureBuffer(rSkyboxTextureBuffer);
+	skyboxEntity->setTopologyType(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP);
+
+	std::vector<VkDescriptorSetLayout> shaderParams;
+	VulkanDescriptorSetMgr::get()->createDescriptorSetLayout(pDevice->getGraphicDevice(), skyboxEntity, shaderParams);
+
+	VkDescriptorSet renderDescriptorSet;
+	VulkanDescriptorSetMgr::get()->createDescriptorSet(pDevice->getGraphicDevice(), pRenderer->getDescriptorPool(), shaderParams, renderDescriptorSet);
+
+	VulkanDescriptorSetMgr::get()->updateDescriptorSetbyRenderableEntity(pDevice->getGraphicDevice(), renderDescriptorSet, skyboxEntity);
+
+	skyboxEntity->setDescriptorSet(renderDescriptorSet);
+	skyboxEntity->setDescriptorSetLayout(shaderParams);
+
+	VulkanGraphicPipelineState pipelineState;
+	pipelineState.activeRenderPass = pRenderer->getRenderPass();
+	VkPipeline renderPipeline = VK_NULL_HANDLE;
+	VkPipelineLayout renderPipelineLayout = VK_NULL_HANDLE;
+	pRenderer->getGraphicPipeline()->createGraphicPipeline(pWnd, skyboxEntity, pipelineState, renderPipeline, renderPipelineLayout);
+
+	pRenderer->addRenderable(skyboxEntity, renderPipeline, renderPipelineLayout);
+}
+
+
 void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer, ANativeWindow* pWnd, AAssetManager* pAssetMgr)
 {
 	// Maybe a bug of the driver, put the vertex data behind the program will cause crash
@@ -75,48 +174,65 @@ void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer,
 	-1.0f, -0.5f, 0.0f, 1.0f,
 	1.0f, 1.0f, 0.0f, 0.0f };*/
 
+	//float vertexData[14 * 6];
+
+	//for (size_t i = 0; i < 14; i++)
+	//{
+	//	int b = 1 << i;
+	//	float x = (2.0 * float((0x287a & b) != 0) - 1.0) * 1.0;
+	//	float y = (2.0 * float((0x02af & b) != 0) - 1.0) * 1.0;
+	//	float z = (2.0 * float((0x31e3 & b) != 0) - 1.0) * 1.0;
+
+	//	vertexData[i * 6 + 0] = x;
+	//	vertexData[i * 6 + 1] = y;
+	//	vertexData[i * 6 + 2] = z;
+	//	vertexData[i * 6 + 3] = 1.0;
+	//	vertexData[i * 6 + 4] = x;
+	//	vertexData[i * 6 + 5] = y;
+	//}
+
 	const float vertexData[] = {
-		-1.0f,-1.0f,-1.0f, 1.0f, 1.0f, 1.0f,  // -X side 
-		-1.0f,-1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
-		-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-		-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-		-1.0f, 1.0f,-1.0f, 1.0f, 1.0f, 0.0f,
-		-1.0f,-1.0f,-1.0f, 1.0f, 1.0f, 1.0f,
+		-1.0f,-1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 1.0f, // -X side 
+		-1.0f,-1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+		-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 1.0f,
+		-1.0f, 1.0f,-1.0f, 1.0f, 1.0f, 0.0f, 1.0f,
+		-1.0f,-1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
 
-		-1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 1.0f,  // -Z side 
-		1.0f, 1.0f,-1.0f, 1.0f, 1.0f, 0.0f,
-		1.0f,-1.0f,-1.0f, 1.0f, 1.0f, 1.0f,
-		-1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 1.0f,
-		-1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 0.0f,
-		1.0f, 1.0f,-1.0f, 1.0f, 1.0f, 0.0f,
+		-1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 1.0f, 2.0f, // -Z side 
+		1.0f, 1.0f,-1.0f, 1.0f, 1.0f, 0.0f,  2.0f,
+		1.0f,-1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 2.0f,
+		-1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 1.0f, 2.0f,
+		-1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 0.0f, 2.0f,
+		1.0f, 1.0f,-1.0f, 1.0f, 1.0f, 0.0f, 2.0f,
 
-		-1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 1.0f, // -Y 
-		1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 0.0f,
-		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-		-1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 1.0f,
-		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-		-1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		-1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 1.0f, 3.0f,// -Y 
+		1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 0.0f, 3.0f,
+		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 3.0f,
+		-1.0f,-1.0f,-1.0f, 1.0f, 0.0f, 1.0f, 3.0f,
+		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 3.0f,
+		-1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 3.0f,
 
-		-1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 1.0f,  // +Y side 
-		-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-		-1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 1.0f,
-		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-		1.0f, 1.0f,-1.0f, 1.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 1.0f, 4.0f, // +Y side 
+		-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 4.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 4.0f,
+		-1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 1.0f, 4.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 4.0f,
+		1.0f, 1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 4.0f,
 
-		1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 1.0f,  // +X side 
-		1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-		1.0f,-1.0f,-1.0f, 1.0f, 1.0f, 1.0f,
-		1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 1.0f,
+		1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 1.0f, 5.0f, // +X side 
+		1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 5.0f,
+		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 5.0f,
+		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 5.0f,
+		1.0f,-1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 5.0f,
+		1.0f, 1.0f,-1.0f, 1.0f, 0.0f, 1.0f, 5.0f,
 
-		-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f,  // +Z side 
-		-1.0f,-1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
-		-1.0f,-1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
-		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
-		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f,
+		-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 1.0f, 0.0f, // +Z side 
+		-1.0f,-1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
+		-1.0f,-1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f,
+		1.0f,-1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f,
+		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
 	};
 
 	//const float vertexData[] = { 
@@ -141,9 +257,9 @@ void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer,
 
 	// Only used for testing
 	std::shared_ptr<VulkanHardwareVertexBuffer> vertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(pDevice->getGPU(), pDevice->getGraphicDevice(),
-		(void*)vertexData, sizeof(vertexData), sizeof(float) * 6);
+		(void*)vertexData, sizeof(vertexData), sizeof(float) * 7);
 
-	/*const uint16_t indexData[] = { 
+	/*const uint16_t indexData[] = {
 		0, 2, 3, 3, 1, 0,
 		4, 5, 7, 7, 6, 4,
 		0, 1, 5, 5, 4, 0,
@@ -161,8 +277,8 @@ void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer,
 		"	mat4 mvp;\n"
 		"} transform;\n"
 		"layout(location = 0) in vec4 pos;\n"
-		"layout(location = 1) in vec2 i_UV;\n"
-		"layout(location = 0) out vec2 o_UV;\n"
+		"layout(location = 1) in vec3 i_UV;\n"
+		"layout(location = 0) out vec3 o_UV;\n"
 		"void main() {\n"
 		"   o_UV = i_UV;\n"
 		"   gl_Position = transform.mvp * pos;\n"
@@ -173,8 +289,8 @@ void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer,
 
 	const std::string fragShaderText =
 		"#version 450\n"
-		"layout(binding = 1) uniform sampler2D tex;"
-		"layout(location = 0) in vec2 o_UV;\n"
+		"layout(binding = 1) uniform samplerCube tex;"
+		"layout(location = 0) in vec3 o_UV;\n"
 		"layout(location = 0) out vec4 fragColor;\n"
 		"void main() {\n"
 		"   fragColor = texture(tex, o_UV);\n"
@@ -217,21 +333,32 @@ void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer,
 	renderEntity->setUniformBuffer(mvpUniformBuffer);
 
 	std::shared_ptr<VulkanHardwareTextureBuffer> rTextureBuffer = nullptr;
-	AAsset* pTextureAsset = AAssetManager_open(pAssetMgr, "LearningVulkan.ktx", AASSET_MODE_UNKNOWN);
-	if (pTextureAsset)
+	std::vector<std::string> skyboxFiles;
+	skyboxFiles.emplace_back("Skybox_right1.png");
+	skyboxFiles.emplace_back("Skybox_left2.png");
+	skyboxFiles.emplace_back("Skybox_top3.png");
+	skyboxFiles.emplace_back("Skybox_bottom4.png");
+	skyboxFiles.emplace_back("Skybox_front5.png");
+	skyboxFiles.emplace_back("Skybox_back6.png");
+
+	std::vector<std::pair<char*, long>> skyboxImageData;
+	for (size_t i = 0; i < skyboxFiles.size(); i++)
 	{
+		off_t size;
+		AAsset* pTextureAsset = AAssetManager_open(pAssetMgr, skyboxFiles[i].c_str(), AASSET_MODE_UNKNOWN);
+
 		off_t imageSize = AAsset_getLength(pTextureAsset);
 
 		char* buffer = new char[imageSize];
 
 		off_t readSize = AAsset_read(pTextureAsset, (void*)buffer, imageSize);
 		assert(imageSize == readSize);
+		size = readSize;
 
-		rTextureBuffer = std::make_shared<VulkanHardwareTextureBuffer>(pDevice, pRenderer->getCmdPool(), buffer, readSize);
-
-		delete[]buffer;
+		skyboxImageData.emplace_back(buffer, size);
 	}
 
+	rTextureBuffer = std::make_shared<VulkanHardwareTextureBuffer>(pDevice, pRenderer->getCmdPool(), skyboxImageData);
 	if (rTextureBuffer)
 		renderEntity->setTextureBuffer(rTextureBuffer);
 
@@ -281,7 +408,7 @@ static int engine_init_display(struct engine* engine) {
 
 	engine->m_pApp->createVulkanInstance(layerNames, extensionNames, engine->app->window);
 
-	addRenderableEntity(engine->m_pApp->getDevice(), engine->m_pApp->getRender(), engine->app->window, engine->app->activity->assetManager);
+	addSkyboxEntity(engine->m_pApp->getDevice(), engine->m_pApp->getRender(), engine->app->window, engine->app->activity->assetManager);
 
 	return 0;
 }

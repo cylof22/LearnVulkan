@@ -18,7 +18,7 @@ VulkanHardwareVertexBuffer::VulkanHardwareVertexBuffer(const VkPhysicalDevice* p
 
 	m_vertexAttributes[1].binding = 0;
 	m_vertexAttributes[1].location = 1;
-	m_vertexAttributes[1].format = VK_FORMAT_R32G32_SFLOAT;
+	m_vertexAttributes[1].format = VK_FORMAT_R32G32B32_SFLOAT;
 	m_vertexAttributes[1].offset = 16;
 
 	m_size = vertexSize / stride;

@@ -1,5 +1,6 @@
 #pragma once
 #include "common\vulkan_wrapper.h"
+#include <vector>
 
 class VulkanDevice;
 
@@ -9,6 +10,11 @@ public:
 	VulkanHardwareTextureBuffer(const VulkanDevice* rDevice, const VkCommandPool& rCmdPool,
 		const char* pData,  uint32_t size, 
 		VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT, bool isUseStb = false);
+
+	VulkanHardwareTextureBuffer(const VulkanDevice* pDevice, const VkCommandPool& rCmdPool,
+		std::vector<std::pair<char*, long>>& rDataArray, VkImageUsageFlags usageFlags = VK_IMAGE_USAGE_SAMPLED_BIT,
+		VkImageViewType viewType = VK_IMAGE_VIEW_TYPE_CUBE, bool isUseStb = false);
+
 	~VulkanHardwareTextureBuffer();
 
 	VkDescriptorImageInfo& getDescriptorInfo() { return m_rImageDescriptor; }

@@ -93,7 +93,7 @@ bool VulkanRenderer::createCmdPool()
 		info.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 		info.pNext = nullptr;
 		info.queueFamilyIndex = m_pGraphicDevice->getGraphicQueueFamilyIndex();
-		info.flags = 0;
+		info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
 		VkResult res = vkCreateCommandPool(m_pGraphicDevice->getGraphicDevice(), &info, nullptr, &m_cmdPool);
 		return res == VK_SUCCESS;
@@ -456,7 +456,7 @@ void VulkanRenderer::update(bool includeDepth)
 
 	mvp = projection * view * model;
 
-	// wait for the previous buffer finish the
+	//// wait for the previous buffer finish the
 	if (vkGetFenceStatus(m_pGraphicDevice->getGraphicDevice(), m_cmdFences[m_activeCommandBufferId]) == VK_SUCCESS)
 	{
 		vkWaitForFences(m_pGraphicDevice->getGraphicDevice(), 1, &m_cmdFences[m_activeCommandBufferId], VK_TRUE, INT64_MAX);
@@ -520,7 +520,7 @@ void VulkanRenderer::update(bool includeDepth)
 	for (auto rRenderInfo : m_renderEntityInfo)
 	{
 		//std::get<0>(rRenderInfo)->getUniformBuffer()->updateUniformBuffer(activeCmdBuffer, &mvp, sizeof(mvp));
-		vkCmdPushConstants(activeCmdBuffer, std::get<2>(rRenderInfo), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &mvp);
+		vkCmdPushConstants(activeCmdBuffer, std::get<2>(rRenderInfo), VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4), &model);
 
 		vkCmdBindPipeline(activeCmdBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, std::get<1>(rRenderInfo));
 

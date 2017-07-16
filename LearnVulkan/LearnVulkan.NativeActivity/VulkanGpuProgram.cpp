@@ -12,7 +12,8 @@ VulkanGpuProgram::VulkanGpuProgram(const VkDevice& graphicDevice, const std::str
 		data.c_str(), data.size(), kind, fileName.c_str(), options);
 
 	shaderc_compilation_status compileRes = module.GetCompilationStatus();
-	assert(compileRes == shaderc_compilation_status_success);
+	const char* errorInfo = nullptr;
+	//assert(compileRes == shaderc_compilation_status_success);
 	if (compileRes == shaderc_compilation_status_success) {
 		std::vector<uint32_t> result(module.cbegin(), module.cend());
 
@@ -35,6 +36,12 @@ VulkanGpuProgram::VulkanGpuProgram(const VkDevice& graphicDevice, const std::str
 		m_shaderStage.pName = "main";
 		m_shaderStage.stage = convertShaderType2ShaderStageFlag(kind);
 		m_shaderStage.module = shaderModule;
+	}
+	else
+	{
+		int errSize = module.GetNumErrors();
+		errorInfo = module.GetErrorMessage().c_str();
+		errSize++;
 	}
 } 
 

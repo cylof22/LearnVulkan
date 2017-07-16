@@ -70,7 +70,8 @@ bool VulkanDevice::getGraphicQueueHandle()
 	bool found = false;
 	for (size_t i = 0; i < m_queueFamilySize; i++)
 	{
-		if (m_queueProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT)
+		if ((m_queueProperties[i].queueFlags & VK_QUEUE_GRAPHICS_BIT) && 
+			(m_queueProperties[i].queueFlags & VK_QUEUE_COMPUTE_BIT))
 		{
 			found = true;
 			m_graphicQueueIndex = i;
