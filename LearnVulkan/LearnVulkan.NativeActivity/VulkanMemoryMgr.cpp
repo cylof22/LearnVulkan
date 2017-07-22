@@ -36,7 +36,7 @@ bool VulkanMemoryMgr::memoryTypeFromProperties(const VkPhysicalDevice* pGPU, uin
 }
 
 bool VulkanMemoryMgr::imageLayoutConversion(const VkImage& image, const VkImageAspectFlags aspectMask, VkImageLayout srcLayout, VkImageLayout dstLayout, 
-	VkAccessFlagBits srcAcessFlag, const VkCommandBuffer & cmdBuffer, uint32_t mipMapLevels /*=1*/, uint32_t layerCount /*=1*/)
+	VkAccessFlags srcAcessFlag, const VkCommandBuffer & cmdBuffer, uint32_t mipMapLevels /*=1*/, uint32_t layerCount /*=1*/)
 {
 	if (cmdBuffer == VK_NULL_HANDLE)
 		return false;

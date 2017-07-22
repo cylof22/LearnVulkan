@@ -238,7 +238,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 		
 
 		VulkanMemoryMgr::get()->imageLayoutConversion(m_rImage, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_HOST_WRITE_BIT, texturelayoutBuffer, imageInfo.mipLevels, imageInfo.arrayLayers);
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, texturelayoutBuffer, imageInfo.mipLevels, imageInfo.arrayLayers);
 
 		VkCommandBufferMgr::get()->endCommandBuffer(&texturelayoutBuffer);
 
@@ -418,12 +418,12 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice * pD
 		vkBeginCommandBuffer(staggingCmd, &staggingBeginInfo);
 
 		VulkanMemoryMgr::get()->imageLayoutConversion(m_rImage, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_ACCESS_HOST_WRITE_BIT, staggingCmd, image_info.mipLevels, image_info.arrayLayers);
+			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, staggingCmd, image_info.mipLevels, image_info.arrayLayers);
 
 		vkCmdCopyBufferToImage(staggingCmd, stagingBuffer, m_rImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, buffer_copy_regions.size(), buffer_copy_regions.data());
 
 		VulkanMemoryMgr::get()->imageLayoutConversion(m_rImage, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_HOST_WRITE_BIT, staggingCmd, image_info.mipLevels, image_info.arrayLayers);
+			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, staggingCmd, image_info.mipLevels, image_info.arrayLayers);
 
 		vkEndCommandBuffer(staggingCmd);
 
