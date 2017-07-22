@@ -220,6 +220,55 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 
 	res = vkCreateImageView(m_pGraphicDevice->getGraphicDevice(), &depthImageViewInfo, nullptr, &m_depthImageView);
 
+	// change the layout
+	VkCommandBufferAllocateInfo staggingCmdInfo;
+	staggingCmdInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	staggingCmdInfo.pNext = NULL;
+	staggingCmdInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	staggingCmdInfo.commandPool = m_cmdPool;
+	staggingCmdInfo.commandBufferCount = 1;
+
+	VkCommandBuffer staggingCmd;
+	vkAllocateCommandBuffers(m_pGraphicDevice->getGraphicDevice(), &staggingCmdInfo, &staggingCmd);
+
+	VkCommandBufferBeginInfo staggingBeginInfo = {};
+	staggingBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	staggingBeginInfo.pNext = NULL;
+	staggingBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+	staggingBeginInfo.pInheritanceInfo = NULL;
+
+	vkBeginCommandBuffer(staggingCmd, &staggingBeginInfo);
+
+	VkImageSubresourceRange ds_subresource_range;
+	ds_subresource_range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+	ds_subresource_range.baseMipLevel = 0;
+	ds_subresource_range.levelCount = 1;
+	ds_subresource_range.baseArrayLayer = 0;
+	ds_subresource_range.layerCount = 1;
+
+	VulkanMemoryMgr::get()->imageLayoutConversion(depthImage, ds_subresource_range.aspectMask, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		0, staggingCmd);
+
+	vkEndCommandBuffer(staggingCmd);
+
+	VkFence depthFence;
+	VkFenceCreateInfo depthFenceInfo;
+	depthFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	depthFenceInfo.pNext = NULL;
+	depthFenceInfo.flags = 0;
+	vkCreateFence(m_pGraphicDevice->getGraphicDevice(), &depthFenceInfo, nullptr, &depthFence);
+
+	VkPipelineStageFlags skyboxPipelineStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
+	VkSubmitInfo skyboxSubmitInfo = {};
+	skyboxSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	skyboxSubmitInfo.pNext = NULL;
+	skyboxSubmitInfo.commandBufferCount = 1;
+	skyboxSubmitInfo.pCommandBuffers = &staggingCmd;
+
+	vkQueueSubmit(m_pGraphicDevice->getGraphicQueue(), 1, &skyboxSubmitInfo, depthFence);
+
+	vkWaitForFences(m_pGraphicDevice->getGraphicDevice(), 1, &depthFence, true, UINT64_MAX);
+
 	return isOk && res == VK_SUCCESS;
 }
 
@@ -423,7 +472,7 @@ inline glm::mat4 vulkanStyleProjection(const glm::mat4 &proj)
 
 void VulkanRenderer::update(bool includeDepth)
 {
-	static bool isStart = true;
+	static bool isStart = false;
 
 	static glm::mat4 mvp = glm::mat4(1.0f);
 	static float transf = 0.0f;
@@ -457,7 +506,7 @@ void VulkanRenderer::update(bool includeDepth)
 	mvp = projection * view * model;
 
 	//// wait for the previous buffer finish the
-	if (vkGetFenceStatus(m_pGraphicDevice->getGraphicDevice(), m_cmdFences[m_activeCommandBufferId]) == VK_SUCCESS)
+	if (isStart && vkGetFenceStatus(m_pGraphicDevice->getGraphicDevice(), m_cmdFences[m_activeCommandBufferId]) == VK_SUCCESS)
 	{
 		vkWaitForFences(m_pGraphicDevice->getGraphicDevice(), 1, &m_cmdFences[m_activeCommandBufferId], VK_TRUE, INT64_MAX);
 		vkResetFences(m_pGraphicDevice->getGraphicDevice(), 1, &m_cmdFences[m_activeCommandBufferId]);
@@ -546,4 +595,6 @@ void VulkanRenderer::update(bool includeDepth)
 	vkCmdEndRenderPass(activeCmdBuffer);
 
 	res = VkCommandBufferMgr::get()->endCommandBuffer(&activeCmdBuffer);
+
+	isStart = true;
 }
