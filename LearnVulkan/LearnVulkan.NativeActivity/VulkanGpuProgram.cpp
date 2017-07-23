@@ -27,7 +27,7 @@ VulkanGpuProgram::VulkanGpuProgram(const VkDevice& graphicDevice, const std::str
 		info.pCode = result.data();
 
 		VkShaderModule shaderModule = VK_NULL_HANDLE;
-		res = vkCreateShaderModule(graphicDevice, &info, nullptr, &shaderModule);
+		res = vkCreateShaderModule(graphicDevice, &info, VK_ALLOC_CALLBACK, &shaderModule);
 
 		m_shaderStage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
 		m_shaderStage.pNext = nullptr;

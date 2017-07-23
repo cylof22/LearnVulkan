@@ -28,7 +28,7 @@ VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice
 	presentSemaphoreInfo.pNext = nullptr;
 	presentSemaphoreInfo.flags = 0;
 
-	vkCreateSemaphore(m_pGraphicDevice->getGraphicDevice(), &presentSemaphoreInfo, nullptr, &m_presentCompleteSemaphore);
+	vkCreateSemaphore(m_pGraphicDevice->getGraphicDevice(), &presentSemaphoreInfo, VK_ALLOC_CALLBACK, &m_presentCompleteSemaphore);
 
 	// draw semaphore
 	VkSemaphoreCreateInfo drawSemaphoreInfo = {};
@@ -36,20 +36,20 @@ VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice
 	drawSemaphoreInfo.pNext = nullptr;
 	drawSemaphoreInfo.flags = 0;
 
-	vkCreateSemaphore(m_pGraphicDevice->getGraphicDevice(), &drawSemaphoreInfo, nullptr, &m_drawCompleteSemaphore);
+	vkCreateSemaphore(m_pGraphicDevice->getGraphicDevice(), &drawSemaphoreInfo, VK_ALLOC_CALLBACK, &m_drawCompleteSemaphore);
 }
 
 VulkanRenderer::~VulkanRenderer()
 {
 	if (m_renderPass != VK_NULL_HANDLE)
-		vkDestroyRenderPass(m_pGraphicDevice->getGraphicDevice(), m_renderPass, nullptr);
+		vkDestroyRenderPass(m_pGraphicDevice->getGraphicDevice(), m_renderPass, VK_ALLOC_CALLBACK);
 
 	for (uint32_t i = 0; i < m_framebuffers.size(); i++)
-		vkDestroyFramebuffer(m_pGraphicDevice->getGraphicDevice(), m_framebuffers[i], nullptr);
+		vkDestroyFramebuffer(m_pGraphicDevice->getGraphicDevice(), m_framebuffers[i], VK_ALLOC_CALLBACK);
 	m_framebuffers.clear();
 
-	vkDestroySemaphore(m_pGraphicDevice->getGraphicDevice(), m_presentCompleteSemaphore, nullptr);
-	vkDestroySemaphore(m_pGraphicDevice->getGraphicDevice(), m_drawCompleteSemaphore, nullptr);
+	vkDestroySemaphore(m_pGraphicDevice->getGraphicDevice(), m_presentCompleteSemaphore, VK_ALLOC_CALLBACK);
+	vkDestroySemaphore(m_pGraphicDevice->getGraphicDevice(), m_drawCompleteSemaphore, VK_ALLOC_CALLBACK);
 }
 
 bool VulkanRenderer::init(ANativeWindow* pWnd)
@@ -95,7 +95,7 @@ bool VulkanRenderer::createCmdPool()
 		info.queueFamilyIndex = m_pGraphicDevice->getGraphicQueueFamilyIndex();
 		info.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
 
-		VkResult res = vkCreateCommandPool(m_pGraphicDevice->getGraphicDevice(), &info, nullptr, &m_cmdPool);
+		VkResult res = vkCreateCommandPool(m_pGraphicDevice->getGraphicDevice(), &info, VK_ALLOC_CALLBACK, &m_cmdPool);
 		return res == VK_SUCCESS;
 	}
 	return false;
@@ -120,7 +120,7 @@ bool VulkanRenderer::createDescriptorPool()
 	info.poolSizeCount = 2;
 	info.pPoolSizes = descriptorPools;
 
-	res = vkCreateDescriptorPool(m_pGraphicDevice->getGraphicDevice(), &info, nullptr, &m_descriptorPool);
+	res = vkCreateDescriptorPool(m_pGraphicDevice->getGraphicDevice(), &info, VK_ALLOC_CALLBACK, &m_descriptorPool);
 	return res == VK_SUCCESS;
 }
 
@@ -171,7 +171,7 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 	info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 
 	VkImage depthImage;
-	res = vkCreateImage(m_pGraphicDevice->getGraphicDevice(), &info, nullptr, &depthImage);
+	res = vkCreateImage(m_pGraphicDevice->getGraphicDevice(), &info, VK_ALLOC_CALLBACK, &depthImage);
 	if (res != VK_SUCCESS)
 		return false;
 
@@ -218,27 +218,9 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 		m_depthFormat == VK_FORMAT_D32_SFLOAT_S8_UINT)
 		depthImageViewInfo.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 
-	res = vkCreateImageView(m_pGraphicDevice->getGraphicDevice(), &depthImageViewInfo, nullptr, &m_depthImageView);
+	res = vkCreateImageView(m_pGraphicDevice->getGraphicDevice(), &depthImageViewInfo, VK_ALLOC_CALLBACK, &m_depthImageView);
 
 	// change the layout
-	VkCommandBufferAllocateInfo staggingCmdInfo;
-	staggingCmdInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
-	staggingCmdInfo.pNext = NULL;
-	staggingCmdInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-	staggingCmdInfo.commandPool = m_cmdPool;
-	staggingCmdInfo.commandBufferCount = 1;
-
-	VkCommandBuffer staggingCmd;
-	vkAllocateCommandBuffers(m_pGraphicDevice->getGraphicDevice(), &staggingCmdInfo, &staggingCmd);
-
-	VkCommandBufferBeginInfo staggingBeginInfo = {};
-	staggingBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-	staggingBeginInfo.pNext = NULL;
-	staggingBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-	staggingBeginInfo.pInheritanceInfo = NULL;
-
-	vkBeginCommandBuffer(staggingCmd, &staggingBeginInfo);
-
 	VkImageSubresourceRange ds_subresource_range;
 	ds_subresource_range.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 	ds_subresource_range.baseMipLevel = 0;
@@ -246,28 +228,8 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 	ds_subresource_range.baseArrayLayer = 0;
 	ds_subresource_range.layerCount = 1;
 
-	VulkanMemoryMgr::get()->imageLayoutConversion(depthImage, ds_subresource_range.aspectMask, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-		0, staggingCmd);
-
-	vkEndCommandBuffer(staggingCmd);
-
-	VkFence depthFence;
-	VkFenceCreateInfo depthFenceInfo;
-	depthFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-	depthFenceInfo.pNext = NULL;
-	depthFenceInfo.flags = 0;
-	vkCreateFence(m_pGraphicDevice->getGraphicDevice(), &depthFenceInfo, nullptr, &depthFence);
-
-	VkPipelineStageFlags skyboxPipelineStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
-	VkSubmitInfo skyboxSubmitInfo = {};
-	skyboxSubmitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-	skyboxSubmitInfo.pNext = NULL;
-	skyboxSubmitInfo.commandBufferCount = 1;
-	skyboxSubmitInfo.pCommandBuffers = &staggingCmd;
-
-	vkQueueSubmit(m_pGraphicDevice->getGraphicQueue(), 1, &skyboxSubmitInfo, depthFence);
-
-	vkWaitForFences(m_pGraphicDevice->getGraphicDevice(), 1, &depthFence, true, UINT64_MAX);
+	VulkanMemoryMgr::get()->imageLayoutConversion(m_pGraphicDevice->getGraphicDevice(), m_pGraphicDevice->getGraphicQueue(), m_cmdPool,  depthImage, 
+		VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL, ds_subresource_range);
 
 	return isOk && res == VK_SUCCESS;
 }
@@ -396,7 +358,7 @@ bool VulkanRenderer::createRenderPass(bool includeDepth, bool clear /*=true*/)
 	rp_info.dependencyCount = 0;
 	rp_info.pDependencies = nullptr;
 
-	res = vkCreateRenderPass(m_pGraphicDevice->getGraphicDevice(), &rp_info, NULL, &m_renderPass);
+	res = vkCreateRenderPass(m_pGraphicDevice->getGraphicDevice(), &rp_info, VK_ALLOC_CALLBACK, &m_renderPass);
 	assert(res == VK_SUCCESS);
 	return res == VK_SUCCESS;
 }
@@ -425,7 +387,7 @@ bool VulkanRenderer::createFrameBuffer(ANativeWindow* pWnd, bool includeDepth, b
 	for (uint32_t i = 0; i < m_pSwapChain->getColorBuffers().size(); i++)
 	{
 		imageViews[0] = (m_pSwapChain->getColorBuffers())[i].view;
-		res = vkCreateFramebuffer(m_pGraphicDevice->getGraphicDevice(), &info, nullptr, &(m_framebuffers[i]));
+		res = vkCreateFramebuffer(m_pGraphicDevice->getGraphicDevice(), &info, VK_ALLOC_CALLBACK, &(m_framebuffers[i]));
 		assert(res == VK_SUCCESS);
 	}
 
@@ -451,7 +413,7 @@ bool VulkanRenderer::createCommandBuffers(bool includeDepth)
 		fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		fenceCreateInfo.flags = 0;
 		VkFence fence;
-		res = vkCreateFence(m_pGraphicDevice->getGraphicDevice(), &fenceCreateInfo, nullptr, &fence);
+		res = vkCreateFence(m_pGraphicDevice->getGraphicDevice(), &fenceCreateInfo, VK_ALLOC_CALLBACK, &fence);
 		assert(res == VK_SUCCESS);
 
 		m_cmdFences[i] = fence;

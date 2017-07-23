@@ -79,7 +79,7 @@ VkResult VulkanSwapChain::createSurface(ANativeWindow* pWnd)
 	info.flags = 0;
 	info.window = pWnd;
 
-	res = vkCreateAndroidSurfaceKHR(m_pInstance->getInstance(), &info, nullptr, &m_surface);
+	res = vkCreateAndroidSurfaceKHR(m_pInstance->getInstance(), &info, VK_ALLOC_CALLBACK, &m_surface);
 	return res;
 }
 
@@ -230,7 +230,7 @@ VkResult VulkanSwapChain::createSwapChain(ANativeWindow* pWnd)
 	info.queueFamilyIndexCount = 0;
 	info.pQueueFamilyIndices = nullptr;
 
-	VkResult res = vkCreateSwapchainKHR(m_pDevice->getGraphicDevice(), &info, nullptr, &m_swapchain);;
+	VkResult res = vkCreateSwapchainKHR(m_pDevice->getGraphicDevice(), &info, VK_ALLOC_CALLBACK, &m_swapchain);;
 	return res;
 }
 
@@ -277,7 +277,7 @@ VkResult VulkanSwapChain::createColorImageViews()
 		info.image = m_swapChainImages[i];
 
 		VkImageView imageView;
-		res = vkCreateImageView(m_pDevice->getGraphicDevice(), &info, nullptr, &imageView);
+		res = vkCreateImageView(m_pDevice->getGraphicDevice(), &info, VK_ALLOC_CALLBACK, &imageView);
 
 		if (res == VK_SUCCESS)
 		{

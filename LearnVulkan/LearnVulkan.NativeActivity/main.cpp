@@ -76,7 +76,7 @@ void addSkyboxEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer, ANa
 	std::shared_ptr<VulkanHardwareVertexBuffer> skyboxVertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(pDevice->getGPU(), pDevice->getGraphicDevice(),
 		(void*)skyboxGeometry, sizeof(skyboxGeometry), sizeof(float) * 7);
 
-	const std::string skyboxVertexProg = 
+	const std::string skyboxVertexProg =
 		"#version 450\n"
 		"layout(push_constant) uniform mvpBuffer {\n"
 		"	mat4 mvp;\n"
@@ -85,7 +85,7 @@ void addSkyboxEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer, ANa
 		"layout(location = 1) in vec3 i_UV;\n"
 		"layout(location = 0) out vec3 o_UV;\n"
 		"void main() {\n"
-		"   o_UV = i_UV;\n"
+		"   o_UV = mat3(transform.mvp) * i_UV;"
 		"   gl_Position = pos;\n"
 		"}\n";
 

@@ -19,3 +19,6 @@
 
 #include <android/log.h>
 #include "android_native_app_glue.h"
+
+#define VK_ALLOC_CALLBACK (VkAllocationCallbacks*)NULL
+#define VK_VALIDATION_RESULT(res) { assert(res == VK_SUCCESS); }

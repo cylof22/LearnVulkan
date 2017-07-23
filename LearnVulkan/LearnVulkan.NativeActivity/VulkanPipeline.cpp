@@ -24,7 +24,7 @@ VkResult VulkanPipeline::createPipeLineCache()
 	info.initialDataSize = 0;
 	info.pInitialData = nullptr;
 	info.flags = 0;
-	res = vkCreatePipelineCache(m_pDevice->getGraphicDevice(), &info, nullptr, &m_pipelineCache);
+	res = vkCreatePipelineCache(m_pDevice->getGraphicDevice(), &info, VK_ALLOC_CALLBACK, &m_pipelineCache);
 	assert(res == VK_SUCCESS);
 	return res;
 }
@@ -164,7 +164,7 @@ bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRend
 	layoutInfo.pPushConstantRanges = &mvpPushRange;
 
 	// Todo: more information is about the input shader's parameters
-	res = vkCreatePipelineLayout(m_pDevice->getGraphicDevice(), &layoutInfo, nullptr, &layout);
+	res = vkCreatePipelineLayout(m_pDevice->getGraphicDevice(), &layoutInfo, VK_ALLOC_CALLBACK, &layout);
 
 	VkGraphicsPipelineCreateInfo pipelineInfo = {};
 	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -194,7 +194,7 @@ bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRend
 	// pipeline layout 
 	pipelineInfo.layout = layout;
 
-	res = vkCreateGraphicsPipelines(m_pDevice->getGraphicDevice(), m_pipelineCache, 1, &pipelineInfo, nullptr, &pipeline);
+	res = vkCreateGraphicsPipelines(m_pDevice->getGraphicDevice(), m_pipelineCache, 1, &pipelineInfo, VK_ALLOC_CALLBACK, &pipeline);
 	assert(res == VK_SUCCESS);
 	return res == VK_SUCCESS;
 }
@@ -206,10 +206,10 @@ bool VulkanPipeline::createComputePipeline()
 
 void VulkanPipeline::destroyPipeline(const VkPipeline& pipeline)
 {
-	vkDestroyPipeline(m_pDevice->getGraphicDevice(), pipeline, nullptr);
+	vkDestroyPipeline(m_pDevice->getGraphicDevice(), pipeline, VK_ALLOC_CALLBACK);
 }
 
 void VulkanPipeline::destroyPipelineCache(const VkPipelineCache & pipelineCache)
 {
-	vkDestroyPipelineCache(m_pDevice->getGraphicDevice(), pipelineCache, nullptr);
+	vkDestroyPipelineCache(m_pDevice->getGraphicDevice(), pipelineCache, VK_ALLOC_CALLBACK);
 }

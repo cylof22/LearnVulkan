@@ -64,7 +64,7 @@ VkResult VulkanDescriptorSetMgr::createDescriptorSetLayout(const VkDevice& graph
 
 	shaderParams.clear();
 	shaderParams.resize(layoutBindings.size());
-	res = vkCreateDescriptorSetLayout(graphicDevice, &layoutInfo, nullptr, shaderParams.data());
+	res = vkCreateDescriptorSetLayout(graphicDevice, &layoutInfo, VK_ALLOC_CALLBACK, shaderParams.data());
 
 	return res;
 }

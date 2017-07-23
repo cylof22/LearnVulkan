@@ -9,8 +9,23 @@ public:
 	static VulkanMemoryMgr* get();
 
 	bool memoryTypeFromProperties(const VkPhysicalDevice* pGPU, uint32_t typeBits, VkFlags requirementsMask, uint32_t& typeIndex);
-	bool imageLayoutConversion(const VkImage& image, const VkImageAspectFlags aspectMask, VkImageLayout srcLayout, VkImageLayout dstLayout, 
-		VkAccessFlags srcAccessFlags, const VkCommandBuffer& cmdBuffer, uint32_t mipMapLevels = 1, uint32_t layerCount = 1);
+
+	bool imageLayoutConversion(VkDevice gpuDevice, VkQueue presentQueue, VkCommandPool cmdPool,
+		VkImage image,
+		VkImageLayout oldImageLayout,
+		VkImageLayout newImageLayout,
+		VkImageSubresourceRange subresourceRange,
+		VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
+	void setImageLayout(VkCommandBuffer cmdbuffer,
+		VkImage image,
+		VkImageLayout oldImageLayout,
+		VkImageLayout newImageLayout,
+		VkImageSubresourceRange subresourceRange,
+		VkPipelineStageFlags srcStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+		VkPipelineStageFlags dstStageMask = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT);
+
 	VkFormat imageFormatConvert(const  gli::gl::format gliFormat);
 
 private:

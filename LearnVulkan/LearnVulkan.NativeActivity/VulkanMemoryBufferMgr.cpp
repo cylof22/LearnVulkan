@@ -38,7 +38,7 @@ bool VulkanMemoryBufferMgr::createVertexBuffer(const VkPhysicalDevice* rGPU, con
 	info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	info.flags = 0;
 
-	res = vkCreateBuffer(device, &info, nullptr, &vertexBuffer);
+	res = vkCreateBuffer(device, &info, VK_ALLOC_CALLBACK, &vertexBuffer);
 
 	VkMemoryRequirements memRequires;
 	vkGetBufferMemoryRequirements(device, vertexBuffer, &memRequires);
@@ -54,7 +54,7 @@ bool VulkanMemoryBufferMgr::createVertexBuffer(const VkPhysicalDevice* rGPU, con
 
 	if (isOk)
 	{
-		res = vkAllocateMemory(device, &allocInfo, nullptr, &vertexMemory);
+		res = vkAllocateMemory(device, &allocInfo, VK_ALLOC_CALLBACK, &vertexMemory);
 		assert(res == VK_SUCCESS);
 
 		void* pData;
@@ -87,7 +87,7 @@ bool VulkanMemoryBufferMgr::createIndexBuffer(const VkPhysicalDevice& rGPU, cons
 	info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	info.flags = 0;
 
-	res = vkCreateBuffer(device, &info, nullptr, &indexBuffer);
+	res = vkCreateBuffer(device, &info, VK_ALLOC_CALLBACK, &indexBuffer);
 
 	VkMemoryRequirements memRequires;
 	vkGetBufferMemoryRequirements(device, indexBuffer, &memRequires);
@@ -103,7 +103,7 @@ bool VulkanMemoryBufferMgr::createIndexBuffer(const VkPhysicalDevice& rGPU, cons
 
 	if (isOk)
 	{
-		res = vkAllocateMemory(device, &allocInfo, nullptr, &indexMemory);
+		res = vkAllocateMemory(device, &allocInfo, VK_ALLOC_CALLBACK, &indexMemory);
 		assert(res == VK_SUCCESS);
 
 		void* pData;
@@ -136,7 +136,7 @@ bool VulkanMemoryBufferMgr::createUniformBuffer(const VkPhysicalDevice & rGPU, c
 	info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 	info.flags = 0;
 
-	res = vkCreateBuffer(device, &info, nullptr, &uniformBuffer);
+	res = vkCreateBuffer(device, &info, VK_ALLOC_CALLBACK, &uniformBuffer);
 
 	VkMemoryRequirements memRequires;
 	vkGetBufferMemoryRequirements(device, uniformBuffer, &memRequires);
@@ -152,7 +152,7 @@ bool VulkanMemoryBufferMgr::createUniformBuffer(const VkPhysicalDevice & rGPU, c
 
 	if (isOk)
 	{
-		res = vkAllocateMemory(device, &allocInfo, nullptr, &uniformMemory);
+		res = vkAllocateMemory(device, &allocInfo, VK_ALLOC_CALLBACK, &uniformMemory);
 		assert(res == VK_SUCCESS);
 
 		void* pData = nullptr;;

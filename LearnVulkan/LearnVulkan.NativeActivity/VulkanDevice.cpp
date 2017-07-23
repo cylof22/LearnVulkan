@@ -41,7 +41,7 @@ VkResult VulkanDevice::createDevice(const std::vector<const char*>& layers, cons
 	deviceInfo.ppEnabledExtensionNames = extensions.data();
 	deviceInfo.pEnabledFeatures = &supportedFeatures;
 
-	res = vkCreateDevice(*m_pGPU, &deviceInfo, nullptr, &m_device);
+	res = vkCreateDevice(*m_pGPU, &deviceInfo, VK_ALLOC_CALLBACK, &m_device);
 	return res;
 }
 

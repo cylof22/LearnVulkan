@@ -84,7 +84,7 @@ VkResult VulkanInstance::createInstance(const std::vector<const char*>& layers, 
 			VK_DEBUG_REPORT_DEBUG_BIT_EXT;
 		dbgReportCallbackInfo.pfnCallback = debugFunction;
 
-		res = vkCreateDebugReportCallbackEXT(m_instance, &dbgReportCallbackInfo, nullptr, &m_debugReportCallback);
+		res = vkCreateDebugReportCallbackEXT(m_instance, &dbgReportCallbackInfo, VK_ALLOC_CALLBACK, &m_debugReportCallback);
 	}
 	
 

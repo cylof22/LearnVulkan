@@ -61,7 +61,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 	imageInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	imageInfo.tiling = VK_IMAGE_TILING_LINEAR;
 
-	res = vkCreateImage(pDevice->getGraphicDevice(), &imageInfo, nullptr, &m_rImage);
+	res = vkCreateImage(pDevice->getGraphicDevice(), &imageInfo, VK_ALLOC_CALLBACK, &m_rImage);
 	assert(res == VK_SUCCESS);
 
 	// check the memory requirements
@@ -108,7 +108,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 			width * height * 4 ,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_SHARING_MODE_EXCLUSIVE, 0, NULL
 		};
-		vkCreateBuffer(pDevice->getGraphicDevice(), &buffer_info, nullptr, &staging_res.buffer);
+		vkCreateBuffer(pDevice->getGraphicDevice(), &buffer_info, VK_ALLOC_CALLBACK, &staging_res.buffer);
 
 		VkMemoryRequirements mreq_buffer = { 0 };
 		vkGetBufferMemoryRequirements(pDevice->getGraphicDevice(), staging_res.buffer, &mreq_buffer);
@@ -165,22 +165,20 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 		staggingBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 		staggingBeginInfo.pInheritanceInfo = NULL;
 
-		VkImageSubresourceRange skybox_subresource_range;
-		skybox_subresource_range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-		skybox_subresource_range.baseMipLevel = 0;
-		skybox_subresource_range.levelCount = 1;
-		skybox_subresource_range.baseArrayLayer = 0;
-		skybox_subresource_range.layerCount = 1;
+		VkImageSubresourceRange textureSubresourceRange;
+		textureSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		textureSubresourceRange.baseMipLevel = 0;
+		textureSubresourceRange.levelCount = 1;
+		textureSubresourceRange.baseArrayLayer = 0;
+		textureSubresourceRange.layerCount = 1;
 
 		vkBeginCommandBuffer(staggingCmd, &staggingBeginInfo);
 
-		VulkanMemoryMgr::get()->imageLayoutConversion(m_rImage, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			(VkAccessFlagBits)0, staggingCmd);
+		VulkanMemoryMgr::get()->setImageLayout(staggingCmd, m_rImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, textureSubResourceRange);
 
 		vkCmdCopyBufferToImage(staggingCmd, staging_res.buffer, m_rImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &buffer_copy_region);
 
-		VulkanMemoryMgr::get()->imageLayoutConversion(m_rImage, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, VK_ACCESS_TRANSFER_READ_BIT, staggingCmd);
+		VulkanMemoryMgr::get()->setImageLayout(staggingCmd, m_rImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, textureSubResourceRange);
 
 		vkEndCommandBuffer(staggingCmd);
 
@@ -189,7 +187,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 		skyboxFenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 		skyboxFenceInfo.pNext = NULL;
 		skyboxFenceInfo.flags = 0;
-		vkCreateFence(pDevice->getGraphicDevice(), &skyboxFenceInfo, nullptr, &skyboxFence);
+		vkCreateFence(pDevice->getGraphicDevice(), &skyboxFenceInfo, VK_ALLOC_CALLBACK, &skyboxFence);
 
 		VkPipelineStageFlags skyboxPipelineStage = VK_PIPELINE_STAGE_TRANSFER_BIT;
 		VkSubmitInfo skyboxSubmitInfo = {};
@@ -231,36 +229,16 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 		}
 		vkUnmapMemory(pDevice->getGraphicDevice(), m_rMemory);
 
-		// use cmd buffer to convert the imagelayout to shader_read optimally
-		VkCommandBuffer texturelayoutBuffer;
-		VkCommandBufferMgr::get()->createCommandBuffer(&pDevice->getGraphicDevice(), rCmdPool, &texturelayoutBuffer);
-		VkCommandBufferMgr::get()->beginCommandBuffer(&texturelayoutBuffer);
-		
+		// convert to shader reader image
+		VkImageSubresourceRange textureSubResourceRange;
+		textureSubResourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		textureSubResourceRange.baseMipLevel = 0;
+		textureSubResourceRange.levelCount = imageInfo.mipLevels;
+		textureSubResourceRange.baseArrayLayer = 0;
+		textureSubResourceRange.layerCount = imageInfo.arrayLayers;
 
-		VulkanMemoryMgr::get()->imageLayoutConversion(m_rImage, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, texturelayoutBuffer, imageInfo.mipLevels, imageInfo.arrayLayers);
-
-		VkCommandBufferMgr::get()->endCommandBuffer(&texturelayoutBuffer);
-
-		VkFence textureFence = VK_NULL_HANDLE;
-		VkFenceCreateInfo fenceInfo = {};
-		fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
-		fenceInfo.pNext = nullptr;
-		fenceInfo.flags = 0;
-
-		vkCreateFence(pDevice->getGraphicDevice(), &fenceInfo, nullptr, &textureFence);
-
-		VkSubmitInfo submitInfo = {};
-		submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-		submitInfo.pNext = nullptr;
-		submitInfo.commandBufferCount = 1;
-		submitInfo.pCommandBuffers = &texturelayoutBuffer;
-
-		VkCommandBufferMgr::get()->submitCommandBuffer(pDevice->getGraphicQueue(), &texturelayoutBuffer, &submitInfo, textureFence);
-		vkWaitForFences(pDevice->getGraphicDevice(), 1, &textureFence, VK_TRUE, UINT64_MAX);
-
-		vkDestroyFence(pDevice->getGraphicDevice(), textureFence, nullptr);
-		VkCommandBufferMgr::get()->destroyCommandBuffer(&pDevice->getGraphicDevice(), rCmdPool, &texturelayoutBuffer);
+		VulkanMemoryMgr::get()->imageLayoutConversion(pDevice->getGraphicDevice(), pDevice->getGraphicQueue(), rCmdPool, 
+			m_rImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, textureSubResourceRange);
 	}
 
 	// create the image sampler
@@ -284,7 +262,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 	samplerInfo.anisotropyEnable = VK_FALSE;
 	samplerInfo.maxAnisotropy = 1;
 
-	res = vkCreateSampler(pDevice->getGraphicDevice(), &samplerInfo, nullptr, &m_rSampler);
+	res = vkCreateSampler(pDevice->getGraphicDevice(), &samplerInfo, VK_ALLOC_CALLBACK, &m_rSampler);
 	assert(res == VK_SUCCESS);
 
 	// create the image view
@@ -301,7 +279,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 	textureViewInfo.flags = 0;
 	textureViewInfo.image = m_rImage;
 
-	res = vkCreateImageView(pDevice->getGraphicDevice(), &textureViewInfo, nullptr, &m_rView);
+	res = vkCreateImageView(pDevice->getGraphicDevice(), &textureViewInfo, VK_ALLOC_CALLBACK, &m_rView);
 	assert(res == VK_SUCCESS);
 
 	m_rImageDescriptor.sampler = m_rSampler;
@@ -323,7 +301,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice * pD
 			1024 * 1024 * 4 * 6,
 			VK_BUFFER_USAGE_TRANSFER_SRC_BIT, VK_SHARING_MODE_EXCLUSIVE, 0, NULL
 		};
-		res = vkCreateBuffer(pDevice->getGraphicDevice(), &buffer_info, nullptr, &stagingBuffer);
+		res = vkCreateBuffer(pDevice->getGraphicDevice(), &buffer_info, VK_ALLOC_CALLBACK, &stagingBuffer);
 
 		VkMemoryRequirements mreq_buffer = { 0 };
 		vkGetBufferMemoryRequirements(pDevice->getGraphicDevice(), stagingBuffer, &mreq_buffer);
@@ -381,7 +359,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice * pD
 			NULL, VK_IMAGE_LAYOUT_UNDEFINED
 		};
 
-		res = vkCreateImage(pDevice->getGraphicDevice(), &image_info, nullptr, &m_rImage);
+		res = vkCreateImage(pDevice->getGraphicDevice(), &image_info, VK_ALLOC_CALLBACK, &m_rImage);
 
 		VkMemoryRequirements mreq_image = { 0 };
 		vkGetImageMemoryRequirements(pDevice->getGraphicDevice(), m_rImage, &mreq_image);
@@ -417,13 +395,18 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice * pD
 
 		vkBeginCommandBuffer(staggingCmd, &staggingBeginInfo);
 
-		VulkanMemoryMgr::get()->imageLayoutConversion(m_rImage, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_UNDEFINED,
-			VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 0, staggingCmd, image_info.mipLevels, image_info.arrayLayers);
+		VkImageSubresourceRange textureSubresourceRange;
+		textureSubresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+		textureSubresourceRange.baseMipLevel = 0;
+		textureSubresourceRange.levelCount = image_info.mipLevels;
+		textureSubresourceRange.baseArrayLayer = 0;
+		textureSubresourceRange.layerCount = image_info.arrayLayers;
+
+		VulkanMemoryMgr::get()->setImageLayout(staggingCmd, m_rImage, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, textureSubresourceRange);
 
 		vkCmdCopyBufferToImage(staggingCmd, stagingBuffer, m_rImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, buffer_copy_regions.size(), buffer_copy_regions.data());
 
-		VulkanMemoryMgr::get()->imageLayoutConversion(m_rImage, VK_IMAGE_ASPECT_COLOR_BIT, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-			VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, 0, staggingCmd, image_info.mipLevels, image_info.arrayLayers);
+		VulkanMemoryMgr::get()->setImageLayout(staggingCmd, m_rImage, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, textureSubresourceRange);
 
 		vkEndCommandBuffer(staggingCmd);
 
@@ -451,7 +434,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice * pD
 			{ VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_G, VK_COMPONENT_SWIZZLE_B, VK_COMPONENT_SWIZZLE_A },
 			{ VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 6 }
 		};
-		res = vkCreateImageView(pDevice->getGraphicDevice(), &image_view_info, nullptr, &m_rView);
+		res = vkCreateImageView(pDevice->getGraphicDevice(), &image_view_info, VK_ALLOC_CALLBACK, &m_rView);
 
 		// create the image sampler
 		VkSamplerCreateInfo samplerInfo = {};
@@ -474,7 +457,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice * pD
 		samplerInfo.anisotropyEnable = VK_FALSE;
 		samplerInfo.maxAnisotropy = 1;
 
-		res = vkCreateSampler(pDevice->getGraphicDevice(), &samplerInfo, nullptr, &m_rSampler);
+		res = vkCreateSampler(pDevice->getGraphicDevice(), &samplerInfo, VK_ALLOC_CALLBACK, &m_rSampler);
 		assert(res == VK_SUCCESS);
 
 		m_rImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
