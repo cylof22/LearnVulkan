@@ -7,7 +7,7 @@
 #include "VulkanPipelineState.h"
 #include <glm\glm.hpp>
 
-VulkanPipeline::VulkanPipeline(VulkanDevice * pDevice) : m_pDevice(pDevice)
+VulkanPipeline::VulkanPipeline(VulkanDevice * pDevice) : m_pDevice(pDevice), mDynamicStateSize(0)
 {
 }
 
@@ -34,17 +34,9 @@ bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRend
 {
 	VkResult res;
 
-	// dynamic state
-	VkDynamicState dynamicStates[VK_DYNAMIC_STATE_RANGE_SIZE];
-	memset(dynamicStates, 0, sizeof(dynamicStates));
-
-	VkPipelineDynamicStateCreateInfo dynamicStateInfo = {};
-	dynamicStateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-	dynamicStateInfo.pNext = nullptr;
-	dynamicStateInfo.pDynamicStates = dynamicStates;
-	dynamicStateInfo.dynamicStateCount = 0;
-	dynamicStates[dynamicStateInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_VIEWPORT;
-	dynamicStates[dynamicStateInfo.dynamicStateCount++] = VK_DYNAMIC_STATE_SCISSOR;
+	// add viewport and scissor state
+	mDynamicStateInfo.dynamicStateCount = mDynamicStateSize;
+	mDynamicStateInfo.pDynamicStates = mDynamicStates.data();
 	
 	// vertex input state info
 	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
@@ -57,96 +49,12 @@ bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRend
 	vertexInputInfo.pVertexAttributeDescriptions = pRenderable->getVertexBuffer()->getVertexInputAttributes().data();
 
 	// vertex attribute state info
-	VkPipelineInputAssemblyStateCreateInfo vertexAssemblyInfo = {};
-	vertexAssemblyInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-	vertexAssemblyInfo.pNext = nullptr;
-	vertexAssemblyInfo.topology = pRenderable->getTopologyType();
-	vertexAssemblyInfo.primitiveRestartEnable = VK_FALSE; //pRenderable->isIndexRestart();
-
-	// rasterization state info
-	VkPipelineRasterizationStateCreateInfo rasterizationInfo = {};
-	rasterizationInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-	rasterizationInfo.pNext = nullptr;
-	rasterizationInfo.polygonMode = VK_POLYGON_MODE_FILL;
-	rasterizationInfo.cullMode = VK_CULL_MODE_NONE;
-	rasterizationInfo.frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE;
-	rasterizationInfo.depthClampEnable = VK_TRUE;
-	rasterizationInfo.rasterizerDiscardEnable = VK_FALSE;
-	rasterizationInfo.depthBiasEnable = VK_FALSE;
-	rasterizationInfo.depthBiasConstantFactor = 0;
-	rasterizationInfo.depthClampEnable = VK_FALSE;
-	rasterizationInfo.depthBiasSlopeFactor = 0;
-	rasterizationInfo.lineWidth = 1.0f;
+	mAssemblyStateInfo.topology = pRenderable->getTopologyType();
+	mAssemblyStateInfo.primitiveRestartEnable = pRenderable->isIndexRestart();
 
 	// color blend state info
-	VkPipelineColorBlendAttachmentState blendState = {};
-	blendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-	blendState.blendEnable = VK_FALSE;
-
-	VkPipelineColorBlendStateCreateInfo blendInfo = {};
-	blendInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-	blendInfo.pNext = nullptr;
-	blendInfo.flags = 0;
-	blendInfo.attachmentCount = 1;
-	blendInfo.pAttachments = &blendState;
-	blendInfo.logicOpEnable = VK_FALSE;
-	blendInfo.blendConstants[0] = 0.0;
-	blendInfo.blendConstants[1] = 0.0;
-	blendInfo.blendConstants[2] = 0.0;
-	blendInfo.blendConstants[3] = 0.0;
-
-	VkViewport viewport;
-	viewport.height = (float)ANativeWindow_getHeight(pWnd);
-	viewport.width = (float)ANativeWindow_getWidth(pWnd);
-	viewport.minDepth = (float) 0.0f;
-	viewport.maxDepth = (float) 1.0f;
-	viewport.x = 0;
-	viewport.y = 0;
-
-	VkRect2D scissor;
-	scissor.extent.width = ANativeWindow_getWidth(pWnd);
-	scissor.extent.height = ANativeWindow_getHeight(pWnd);
-	scissor.offset.x = 0;
-	scissor.offset.y = 0;
-
-	// viewport state info
-	VkPipelineViewportStateCreateInfo viewportInfo = {};
-	viewportInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-	viewportInfo.pNext = nullptr;
-	viewportInfo.flags = 0;
-	viewportInfo.viewportCount = 1;
-	viewportInfo.scissorCount = 1;
-	viewportInfo.pScissors = &scissor;
-	viewportInfo.pViewports = &viewport;
-
-	// depth & stencile state info
-	VkPipelineDepthStencilStateCreateInfo depthStencilInfo = {};
-	depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-	depthStencilInfo.pNext = nullptr;
-	depthStencilInfo.flags = 0;
-	depthStencilInfo.depthTestEnable = true;
-	depthStencilInfo.depthWriteEnable = true;
-	depthStencilInfo.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
-	depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
-	depthStencilInfo.stencilTestEnable = VK_FALSE;
-	depthStencilInfo.back.failOp = VK_STENCIL_OP_KEEP;
-	depthStencilInfo.back.passOp = VK_STENCIL_OP_KEEP;
-	depthStencilInfo.back.compareOp = VK_COMPARE_OP_ALWAYS;
-	depthStencilInfo.back.compareMask = 0;
-	depthStencilInfo.back.reference = 0;
-	depthStencilInfo.back.depthFailOp = VK_STENCIL_OP_KEEP;
-	depthStencilInfo.back.writeMask = 0;
-	depthStencilInfo.minDepthBounds = 0;
-	depthStencilInfo.maxDepthBounds = 0;
-	depthStencilInfo.stencilTestEnable = VK_FALSE;
-	depthStencilInfo.front = depthStencilInfo.back;
-
-	// Multi-Sample State info
-	VkPipelineMultisampleStateCreateInfo multisampleInfo = {};
-	multisampleInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-	multisampleInfo.pNext = nullptr;
-	multisampleInfo.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-	multisampleInfo.sampleShadingEnable = VK_FALSE;
+	mBlendStateInfo.attachmentCount = mBlendAttachments.size();
+	mBlendStateInfo.pAttachments = mBlendAttachments.data();
 
 	// push-constant info
 	VkPushConstantRange mvpPushRange;
@@ -173,14 +81,16 @@ bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRend
 	//pipelineInfo.basePipelineHandle = 0;
 	//pipelineInfo.basePipelineIndex = 0;
 	pipelineInfo.pVertexInputState = &vertexInputInfo;
-	pipelineInfo.pInputAssemblyState = &vertexAssemblyInfo;
-	pipelineInfo.pRasterizationState = &rasterizationInfo;
-	pipelineInfo.pColorBlendState = &blendInfo;
+	pipelineInfo.pInputAssemblyState = &mAssemblyStateInfo;
+	pipelineInfo.pRasterizationState = &mRasterizationStateInfo;
+	pipelineInfo.pColorBlendState = &mBlendStateInfo;
 
 	//pipelineInfo.pDynamicState = &dynamicStateInfo;
-	pipelineInfo.pViewportState = &viewportInfo;
-	pipelineInfo.pDepthStencilState = &depthStencilInfo;
-	pipelineInfo.pMultisampleState = &multisampleInfo;
+	if(mViewportStateInfo.viewportCount != 0)
+		pipelineInfo.pViewportState = &mViewportStateInfo;
+
+	pipelineInfo.pDepthStencilState = &mDepthStencilStateInfo;
+	pipelineInfo.pMultisampleState = &mMultiSampleStateInfo;
 
 	// This step needs to optimize use like std::array, and the preallocate size can be 5
 	std::vector<VkPipelineShaderStageCreateInfo> activeShaderStagesInfo;
@@ -212,4 +122,77 @@ void VulkanPipeline::destroyPipeline(const VkPipeline& pipeline)
 void VulkanPipeline::destroyPipelineCache(const VkPipelineCache & pipelineCache)
 {
 	vkDestroyPipelineCache(m_pDevice->getGraphicDevice(), pipelineCache, VK_ALLOC_CALLBACK);
+}
+
+void VulkanPipeline::setViewport(float width, float height, float offsetWidth, float offsetHeight, float minDepth, float maxDepth)
+{
+	VkViewport viewport;
+	viewport.height = height;
+	viewport.width = width;
+	viewport.minDepth = minDepth;
+	viewport.maxDepth = maxDepth;
+	viewport.x = offsetWidth;
+	viewport.y = offsetHeight;
+	addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
+	mViewportStateInfo.viewportCount = 1;
+	mViewportStateInfo.pViewports = &viewport;
+	
+	VkRect2D scissor;
+	scissor.extent.width = width;
+	scissor.extent.height = height;
+	scissor.offset.x = offsetWidth;
+	scissor.offset.y = offsetHeight;
+	mViewportStateInfo.scissorCount = 1;
+	mViewportStateInfo.pScissors = &scissor;
+
+	addDynamicState(VK_DYNAMIC_STATE_SCISSOR);
+}
+
+void VulkanPipeline::addDynamicState(const VkDynamicState state)
+{
+	mDynamicStateSize++;
+	mDynamicStates[mDynamicStateSize] = state;
+}
+
+void VulkanPipeline::enableIndexRestart(bool isRestart)
+{
+	mAssemblyStateInfo.primitiveRestartEnable = isRestart;
+}
+
+void VulkanPipeline::setTopologyType(VkPrimitiveTopology topologyType)
+{
+	mAssemblyStateInfo.topology = topologyType;
+}
+
+void VulkanPipeline::setPolygonMode(VkPolygonMode polygonMode)
+{
+	mRasterizationStateInfo.polygonMode = polygonMode;
+}
+
+void VulkanPipeline::setCullMode(VkCullModeFlagBits cullMode, VkFrontFace frontFace)
+{
+	mRasterizationStateInfo.cullMode = cullMode;
+	mRasterizationStateInfo.frontFace = frontFace;
+}
+
+void VulkanPipeline::setLineWidth(float width)
+{
+	mRasterizationStateInfo.lineWidth = width;
+}
+
+void VulkanPipeline::addColorBlendAttachment()
+{
+}
+
+void VulkanPipeline::enableDepthTest(bool isEnable, bool isWriteEnable, VkCompareOp compareOp, bool isDepthBoundTestEnable)
+{
+	mDepthStencilStateInfo.depthTestEnable = isEnable;
+	mDepthStencilStateInfo.depthWriteEnable = isWriteEnable;
+	mDepthStencilStateInfo.depthCompareOp = compareOp;
+	mDepthStencilStateInfo.depthBoundsTestEnable = isDepthBoundTestEnable;
+}
+
+void VulkanPipeline::enableStencilTest(bool isEnable, VkStencilOpState frontState, VkStencilOpState backState)
+{
+	mDepthStencilStateInfo.stencilTestEnable = isEnable;
 }

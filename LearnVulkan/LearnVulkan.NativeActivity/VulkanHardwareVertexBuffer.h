@@ -5,7 +5,8 @@
 class VulkanHardwareVertexBuffer
 {
 public:
-	VulkanHardwareVertexBuffer(const VkPhysicalDevice* pGPU, const VkDevice& device, const void * pVertexData, uint32_t vertexSize, uint32_t stride);
+	VulkanHardwareVertexBuffer(const VkPhysicalDevice* pGPU, const VkDevice& device, const void * pVertexData, uint32_t vertexSize, uint32_t stride,
+		std::vector<std::pair<VkFormat, VkDeviceSize>> descriptions, uint32_t binding = 0);
 	~VulkanHardwareVertexBuffer();
 
 	VkVertexInputBindingDescription& getVertexInputBinding() { return m_vertexBinding; }
