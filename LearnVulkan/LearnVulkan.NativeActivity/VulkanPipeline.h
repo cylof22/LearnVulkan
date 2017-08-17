@@ -30,7 +30,7 @@ public:
 	void setCullMode(VkCullModeFlagBits cullMode, VkFrontFace frontFace);
 	void setLineWidth(float width);
 
-	void addColorBlendAttachment();
+	void addColorBlendAttachment(VkPipelineColorBlendAttachmentState blendAttachmentState);
 
 	void enableDepthTest(bool isEnable, bool isWriteEnable = true, VkCompareOp compareOp = VK_COMPARE_OP_LESS_OR_EQUAL, bool isDepthBoundTestEnable = false);
 	void enableStencilTest(bool isEnable, VkStencilOpState frontState, VkStencilOpState backState);
@@ -65,4 +65,13 @@ private:
 		VK_SAMPLE_COUNT_1_BIT, VK_FALSE, 1.0f, nullptr, VK_FALSE, VK_FALSE };
 
 	VkPipelineViewportStateCreateInfo mViewportStateInfo = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, nullptr, 0, 0, nullptr, 0, nullptr };
+
+	VkPipelineVertexInputStateCreateInfo mVertexInputStateInfo = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, nullptr, 0, 1,
+		nullptr, 0, nullptr };
+
+	VkPipelineLayoutCreateInfo mPipelineLayoutInfo = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO, nullptr, 0, 0, nullptr, 0, nullptr };
+
+	VkGraphicsPipelineCreateInfo mGraphicPipelineInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO, nullptr, 0,
+		0, nullptr, &mVertexInputStateInfo, &mAssemblyStateInfo, nullptr, nullptr, &mRasterizationStateInfo, &mMultiSampleStateInfo, 
+		&mDepthStencilStateInfo, &mBlendStateInfo, nullptr, VK_NULL_HANDLE, VK_NULL_HANDLE, 0, VK_NULL_HANDLE, 0 };
 };

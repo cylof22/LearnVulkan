@@ -32,6 +32,9 @@ public:
 	const VkDescriptorSet* getDescriptorSet() const { return &m_descriptorSet; }
 	const std::vector<VkDescriptorSetLayout>& getDescriptorSetLayout() const { return m_descriptorSetLayouts; }
 
+	void addPushConstant(VkShaderStageFlags stage, uint32_t offset, uint32_t size);
+	const std::vector<VkPushConstantRange>& getPushConstant() const;
+
 	const std::shared_ptr<VulkanHardwareVertexBuffer> getVertexBuffer() const { return m_rVertexBuf; }
 	const std::shared_ptr<VulkanHardwareIndexBuffer> getIndexBuffer() const { return m_rIndexBuf; }
 	const std::shared_ptr<VulkanHardwareUniformBuffer> getUniformBuffer() const { return m_rUniformBuffer; }
@@ -56,6 +59,8 @@ private:
 
 	VkDescriptorSet m_descriptorSet;
 	std::vector<VkDescriptorSetLayout> m_descriptorSetLayouts;
+
+	std::vector<VkPushConstantRange> m_pushConstantSet;
 
 	std::shared_ptr<VulkanHardwareUniformBuffer> m_rUniformBuffer;
 	std::shared_ptr<VulkanHardwareTextureBuffer> m_rTextureBuffer;

@@ -73,8 +73,13 @@ void addSkyboxEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer, ANa
 		1.0f, 1.0f, 0.0f, 1.0f, 1.0f, 0.0f, 1.0f,
 		1.0f, -1.0f, 0.0f, 1.0f, 1.0f, 1.0f, 1.0f
 	};
+
+	std::vector<std::pair<VkFormat, VkDeviceSize>> skyboxDescriptions;
+	skyboxDescriptions.emplace_back(std::make_pair(VK_FORMAT_R32G32B32A32_SFLOAT, 0));
+	skyboxDescriptions.emplace_back(std::make_pair(VK_FORMAT_R32G32B32_SFLOAT, 16));
+
 	std::shared_ptr<VulkanHardwareVertexBuffer> skyboxVertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(pDevice->getGPU(), pDevice->getGraphicDevice(),
-		(void*)skyboxGeometry, sizeof(skyboxGeometry), sizeof(float) * 7);
+		(void*)skyboxGeometry, sizeof(skyboxGeometry), sizeof(float) * 7, skyboxDescriptions);
 
 	const std::string skyboxVertexProg =
 		"#version 450\n"
@@ -140,7 +145,7 @@ void addSkyboxEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer, ANa
 
 	skyboxEntity->setTextureBuffer(rSkyboxTextureBuffer);
 	skyboxEntity->setTopologyType(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP);
-
+	
 	std::vector<VkDescriptorSetLayout> shaderParams;
 	VulkanDescriptorSetMgr::get()->createDescriptorSetLayout(pDevice->getGraphicDevice(), skyboxEntity, shaderParams);
 
@@ -151,7 +156,16 @@ void addSkyboxEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer, ANa
 
 	skyboxEntity->setDescriptorSet(renderDescriptorSet);
 	skyboxEntity->setDescriptorSetLayout(shaderParams);
+	skyboxEntity->addPushConstant(VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof(glm::mat4));
 
+	pRenderer->getGraphicPipeline()->setViewport((float)ANativeWindow_getWidth(pWnd), (float)ANativeWindow_getHeight(pWnd));
+
+	VkPipelineColorBlendAttachmentState blendState = {};
+	blendState.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+	blendState.blendEnable = VK_FALSE;
+	pRenderer->getGraphicPipeline()->addColorBlendAttachment(blendState);
+
+	pRenderer->getGraphicPipeline()->setCullMode(VK_CULL_MODE_NONE, VK_FRONT_FACE_COUNTER_CLOCKWISE);
 	VulkanGraphicPipelineState pipelineState;
 	pipelineState.activeRenderPass = pRenderer->getRenderPass();
 	VkPipeline renderPipeline = VK_NULL_HANDLE;
@@ -235,6 +249,10 @@ void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer,
 		1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f,
 	};
 
+	std::vector<std::pair<VkFormat, VkDeviceSize>> vertexDescriptions;
+	vertexDescriptions.emplace_back(std::make_pair(VK_FORMAT_R32G32B32A32_SFLOAT, 0));
+	vertexDescriptions.emplace_back(std::make_pair(VK_FORMAT_R32G32B32_SFLOAT, 16));
+
 	//const float vertexData[] = { 
 	//	1.f,-1.f,-1.f, 1.f, // 0
 	//	0.f, 0.f,
@@ -257,7 +275,7 @@ void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer,
 
 	// Only used for testing
 	std::shared_ptr<VulkanHardwareVertexBuffer> vertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(pDevice->getGPU(), pDevice->getGraphicDevice(),
-		(void*)vertexData, sizeof(vertexData), sizeof(float) * 7);
+		(void*)vertexData, sizeof(vertexData), sizeof(float) * 7, vertexDescriptions);
 
 	/*const uint16_t indexData[] = {
 		0, 2, 3, 3, 1, 0,

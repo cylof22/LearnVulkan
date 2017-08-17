@@ -9,6 +9,16 @@ VulkanRenderable::~VulkanRenderable()
 {
 }
 
+void VulkanRenderable::addPushConstant(VkShaderStageFlags stage, uint32_t offset, uint32_t size)
+{
+	m_pushConstantSet.emplace_back(VkPushConstantRange{stage, offset, size});
+}
+
+const std::vector<VkPushConstantRange>& VulkanRenderable::getPushConstant() const
+{
+	return m_pushConstantSet;
+}
+
 bool VulkanRenderable::getShaderStageInfo(std::vector<VkPipelineShaderStageCreateInfo>& shaderStageInfo) const
 {
 	shaderStageInfo.clear();

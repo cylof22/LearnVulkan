@@ -39,14 +39,9 @@ bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRend
 	mDynamicStateInfo.pDynamicStates = mDynamicStates.data();
 	
 	// vertex input state info
-	VkPipelineVertexInputStateCreateInfo vertexInputInfo = {};
-	vertexInputInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-	vertexInputInfo.pNext = nullptr;
-	vertexInputInfo.flags = 0;
-	vertexInputInfo.vertexBindingDescriptionCount = 1;
-	vertexInputInfo.pVertexBindingDescriptions = &(pRenderable->getVertexBuffer()->getVertexInputBinding());
-	vertexInputInfo.vertexAttributeDescriptionCount = pRenderable->getVertexBuffer()->getVertexInputAttributes().size();
-	vertexInputInfo.pVertexAttributeDescriptions = pRenderable->getVertexBuffer()->getVertexInputAttributes().data();
+	mVertexInputStateInfo.pVertexBindingDescriptions = &(pRenderable->getVertexBuffer()->getVertexInputBinding());
+	mVertexInputStateInfo.vertexAttributeDescriptionCount = pRenderable->getVertexBuffer()->getVertexInputAttributes().size();
+	mVertexInputStateInfo.pVertexAttributeDescriptions = pRenderable->getVertexBuffer()->getVertexInputAttributes().data();
 
 	// vertex attribute state info
 	mAssemblyStateInfo.topology = pRenderable->getTopologyType();
@@ -56,55 +51,32 @@ bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRend
 	mBlendStateInfo.attachmentCount = mBlendAttachments.size();
 	mBlendStateInfo.pAttachments = mBlendAttachments.data();
 
-	// push-constant info
-	VkPushConstantRange mvpPushRange;
-	mvpPushRange.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
-	mvpPushRange.offset = 0;
-	mvpPushRange.size = sizeof(glm::mat4);
-
 	// pipeline layout info
-	VkPipelineLayoutCreateInfo layoutInfo = {};
-	layoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-	layoutInfo.pNext = nullptr;
-	layoutInfo.setLayoutCount = pRenderable->getDescriptorSetLayout().size();
-	layoutInfo.pSetLayouts = pRenderable->getDescriptorSetLayout().data();
-	layoutInfo.pushConstantRangeCount = 1;
-	layoutInfo.pPushConstantRanges = &mvpPushRange;
+	mPipelineLayoutInfo.setLayoutCount = pRenderable->getDescriptorSetLayout().size();
+	mPipelineLayoutInfo.pSetLayouts = pRenderable->getDescriptorSetLayout().data();
+	mPipelineLayoutInfo.pushConstantRangeCount = pRenderable->getPushConstant().size();
+	mPipelineLayoutInfo.pPushConstantRanges = pRenderable->getPushConstant().data();
 
 	// Todo: more information is about the input shader's parameters
-	res = vkCreatePipelineLayout(m_pDevice->getGraphicDevice(), &layoutInfo, VK_ALLOC_CALLBACK, &layout);
-
-	VkGraphicsPipelineCreateInfo pipelineInfo = {};
-	pipelineInfo.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-	pipelineInfo.pNext = nullptr;
-	pipelineInfo.flags = 0;
-	//pipelineInfo.basePipelineHandle = 0;
-	//pipelineInfo.basePipelineIndex = 0;
-	pipelineInfo.pVertexInputState = &vertexInputInfo;
-	pipelineInfo.pInputAssemblyState = &mAssemblyStateInfo;
-	pipelineInfo.pRasterizationState = &mRasterizationStateInfo;
-	pipelineInfo.pColorBlendState = &mBlendStateInfo;
+	res = vkCreatePipelineLayout(m_pDevice->getGraphicDevice(), &mPipelineLayoutInfo, VK_ALLOC_CALLBACK, &layout);
 
 	//pipelineInfo.pDynamicState = &dynamicStateInfo;
 	if(mViewportStateInfo.viewportCount != 0)
-		pipelineInfo.pViewportState = &mViewportStateInfo;
-
-	pipelineInfo.pDepthStencilState = &mDepthStencilStateInfo;
-	pipelineInfo.pMultisampleState = &mMultiSampleStateInfo;
+		mGraphicPipelineInfo.pViewportState = &mViewportStateInfo;
 
 	// This step needs to optimize use like std::array, and the preallocate size can be 5
 	std::vector<VkPipelineShaderStageCreateInfo> activeShaderStagesInfo;
 	pRenderable->getShaderStageInfo(activeShaderStagesInfo);
-	pipelineInfo.pStages = activeShaderStagesInfo.data();
-	pipelineInfo.stageCount = activeShaderStagesInfo.size();
+	mGraphicPipelineInfo.pStages = activeShaderStagesInfo.data();
+	mGraphicPipelineInfo.stageCount = activeShaderStagesInfo.size();
 
-	pipelineInfo.renderPass = pipelineState.activeRenderPass;
-	pipelineInfo.subpass = 0;
+	mGraphicPipelineInfo.renderPass = pipelineState.activeRenderPass;
+	mGraphicPipelineInfo.subpass = 0;
 
 	// pipeline layout 
-	pipelineInfo.layout = layout;
+	mGraphicPipelineInfo.layout = layout;
 
-	res = vkCreateGraphicsPipelines(m_pDevice->getGraphicDevice(), m_pipelineCache, 1, &pipelineInfo, VK_ALLOC_CALLBACK, &pipeline);
+	res = vkCreateGraphicsPipelines(m_pDevice->getGraphicDevice(), m_pipelineCache, 1, &mGraphicPipelineInfo, VK_ALLOC_CALLBACK, &pipeline);
 	assert(res == VK_SUCCESS);
 	return res == VK_SUCCESS;
 }
@@ -180,8 +152,9 @@ void VulkanPipeline::setLineWidth(float width)
 	mRasterizationStateInfo.lineWidth = width;
 }
 
-void VulkanPipeline::addColorBlendAttachment()
+void VulkanPipeline::addColorBlendAttachment(VkPipelineColorBlendAttachmentState blendAttachmentState)
 {
+	mBlendAttachments.emplace_back(blendAttachmentState);
 }
 
 void VulkanPipeline::enableDepthTest(bool isEnable, bool isWriteEnable, VkCompareOp compareOp, bool isDepthBoundTestEnable)
