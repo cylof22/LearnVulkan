@@ -98,25 +98,18 @@ void VulkanPipeline::destroyPipelineCache(const VkPipelineCache & pipelineCache)
 
 void VulkanPipeline::setViewport(float width, float height, float offsetWidth, float offsetHeight, float minDepth, float maxDepth)
 {
-	VkViewport viewport;
-	viewport.height = height;
-	viewport.width = width;
-	viewport.minDepth = minDepth;
-	viewport.maxDepth = maxDepth;
-	viewport.x = offsetWidth;
-	viewport.y = offsetHeight;
+	mViewport.height = height;
+	mViewport.width = width;
+	mViewport.minDepth = minDepth;
+	mViewport.maxDepth = maxDepth;
+	mViewport.x = offsetWidth;
+	mViewport.y = offsetHeight;
 	addDynamicState(VK_DYNAMIC_STATE_VIEWPORT);
-	mViewportStateInfo.viewportCount = 1;
-	mViewportStateInfo.pViewports = &viewport;
 	
-	VkRect2D scissor;
-	scissor.extent.width = width;
-	scissor.extent.height = height;
-	scissor.offset.x = offsetWidth;
-	scissor.offset.y = offsetHeight;
-	mViewportStateInfo.scissorCount = 1;
-	mViewportStateInfo.pScissors = &scissor;
-
+	mScissor.extent.width = width;
+	mScissor.extent.height = height;
+	mScissor.offset.x = offsetWidth;
+	mScissor.offset.y = offsetHeight;
 	addDynamicState(VK_DYNAMIC_STATE_SCISSOR);
 }
 

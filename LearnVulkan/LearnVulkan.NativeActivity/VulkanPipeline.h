@@ -64,7 +64,9 @@ private:
 	VkPipelineMultisampleStateCreateInfo mMultiSampleStateInfo = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO, nullptr, 0,
 		VK_SAMPLE_COUNT_1_BIT, VK_FALSE, 1.0f, nullptr, VK_FALSE, VK_FALSE };
 
-	VkPipelineViewportStateCreateInfo mViewportStateInfo = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, nullptr, 0, 0, nullptr, 0, nullptr };
+	VkViewport mViewport = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1.0f };
+	VkRect2D mScissor = { {0, 0}, {0, 0} };
+	VkPipelineViewportStateCreateInfo mViewportStateInfo = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, nullptr, 0, 1, &mViewport, 1, &mScissor };
 
 	VkPipelineVertexInputStateCreateInfo mVertexInputStateInfo = { VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO, nullptr, 0, 1,
 		nullptr, 0, nullptr };
