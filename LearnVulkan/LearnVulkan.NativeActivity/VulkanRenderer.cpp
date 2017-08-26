@@ -4,7 +4,7 @@
 #include "VulkanSwapChain.h"
 #include "VulkanMemoryMgr.h"
 #include "VkCommandBufferMgr.h"
-#include "VulkanPipeline.h"
+#include "VulkanGraphicPipeline.h"
 #include "VulkanPipelineState.h"
 #include "VulkanGpuProgram.h"
 #include "VulkanHardwareVertexBuffer.h"
@@ -19,7 +19,7 @@ VulkanRenderer::VulkanRenderer(VulkanInstance* pInstance, VulkanDevice * pDevice
 	, m_pWnd(nullptr), m_activeCommandBufferId(0)
 {
 	m_pSwapChain = new VulkanSwapChain(m_pInstance, m_pGraphicDevice);
-	m_pPipeline = new VulkanPipeline(pDevice);
+	m_pPipeline = new VulkanGraphicPipeline(pDevice);
 	m_pPipeline->createPipeLineCache();
 
 	// present semaphore

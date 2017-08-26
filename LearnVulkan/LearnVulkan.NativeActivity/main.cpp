@@ -29,7 +29,7 @@
 #include "VulkanDevice.h"
 #include "VulkanRenderable.h"
 #include "VulkanPipelineState.h"
-#include "VulkanPipeline.h"
+#include "VulkanGraphicPipeline.h"
 #include "VulkanDescriptorSetMgr.h"
 #include <glm\glm.hpp>
 #include <glm\gtc\matrix_transform.hpp>

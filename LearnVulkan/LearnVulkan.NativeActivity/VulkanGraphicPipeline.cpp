@@ -1,5 +1,5 @@
 #include "common\vulkan_wrapper.h"
-#include "VulkanPipeline.h"
+#include "VulkanGraphicPipeline.h"
 #include "VulkanApplication.h"
 #include "VulkanDevice.h"
 #include "VulkanRenderable.h"
@@ -7,15 +7,15 @@
 #include "VulkanPipelineState.h"
 #include <glm\glm.hpp>
 
-VulkanPipeline::VulkanPipeline(VulkanDevice * pDevice) : m_pDevice(pDevice), mDynamicStateSize(0)
+VulkanGraphicPipeline::VulkanGraphicPipeline(VulkanDevice * pDevice) : m_pDevice(pDevice), mDynamicStateSize(0)
 {
 }
 
-VulkanPipeline::~VulkanPipeline()
+VulkanGraphicPipeline::~VulkanGraphicPipeline()
 {
 }
 
-VkResult VulkanPipeline::createPipeLineCache()
+VkResult VulkanGraphicPipeline::createPipeLineCache()
 {
 	VkResult res;
 	VkPipelineCacheCreateInfo info = {};
@@ -29,7 +29,7 @@ VkResult VulkanPipeline::createPipeLineCache()
 	return res;
 }
 
-bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRenderable* pRenderable, const VulkanGraphicPipelineState& pipelineState, 
+bool VulkanGraphicPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRenderable* pRenderable, const VulkanGraphicPipelineState& pipelineState,
 	VkPipeline& pipeline, VkPipelineLayout& layout)
 {
 	VkResult res;
@@ -81,22 +81,17 @@ bool VulkanPipeline::createGraphicPipeline(ANativeWindow* pWnd, const VulkanRend
 	return res == VK_SUCCESS;
 }
 
-bool VulkanPipeline::createComputePipeline()
-{
-	return false;
-}
-
-void VulkanPipeline::destroyPipeline(const VkPipeline& pipeline)
+void VulkanGraphicPipeline::destroyPipeline(const VkPipeline& pipeline)
 {
 	vkDestroyPipeline(m_pDevice->getGraphicDevice(), pipeline, VK_ALLOC_CALLBACK);
 }
 
-void VulkanPipeline::destroyPipelineCache(const VkPipelineCache & pipelineCache)
+void VulkanGraphicPipeline::destroyPipelineCache(const VkPipelineCache & pipelineCache)
 {
 	vkDestroyPipelineCache(m_pDevice->getGraphicDevice(), pipelineCache, VK_ALLOC_CALLBACK);
 }
 
-void VulkanPipeline::setViewport(float width, float height, float offsetWidth, float offsetHeight, float minDepth, float maxDepth)
+void VulkanGraphicPipeline::setViewport(float width, float height, float offsetWidth, float offsetHeight, float minDepth, float maxDepth)
 {
 	mViewport.height = height;
 	mViewport.width = width;
@@ -113,44 +108,44 @@ void VulkanPipeline::setViewport(float width, float height, float offsetWidth, f
 	addDynamicState(VK_DYNAMIC_STATE_SCISSOR);
 }
 
-void VulkanPipeline::addDynamicState(const VkDynamicState state)
+void VulkanGraphicPipeline::addDynamicState(const VkDynamicState state)
 {
 	mDynamicStateSize++;
 	mDynamicStates[mDynamicStateSize] = state;
 }
 
-void VulkanPipeline::enableIndexRestart(bool isRestart)
+void VulkanGraphicPipeline::enableIndexRestart(bool isRestart)
 {
 	mAssemblyStateInfo.primitiveRestartEnable = isRestart;
 }
 
-void VulkanPipeline::setTopologyType(VkPrimitiveTopology topologyType)
+void VulkanGraphicPipeline::setTopologyType(VkPrimitiveTopology topologyType)
 {
 	mAssemblyStateInfo.topology = topologyType;
 }
 
-void VulkanPipeline::setPolygonMode(VkPolygonMode polygonMode)
+void VulkanGraphicPipeline::setPolygonMode(VkPolygonMode polygonMode)
 {
 	mRasterizationStateInfo.polygonMode = polygonMode;
 }
 
-void VulkanPipeline::setCullMode(VkCullModeFlagBits cullMode, VkFrontFace frontFace)
+void VulkanGraphicPipeline::setCullMode(VkCullModeFlagBits cullMode, VkFrontFace frontFace)
 {
 	mRasterizationStateInfo.cullMode = cullMode;
 	mRasterizationStateInfo.frontFace = frontFace;
 }
 
-void VulkanPipeline::setLineWidth(float width)
+void VulkanGraphicPipeline::setLineWidth(float width)
 {
 	mRasterizationStateInfo.lineWidth = width;
 }
 
-void VulkanPipeline::addColorBlendAttachment(VkPipelineColorBlendAttachmentState blendAttachmentState)
+void VulkanGraphicPipeline::addColorBlendAttachment(VkPipelineColorBlendAttachmentState blendAttachmentState)
 {
 	mBlendAttachments.emplace_back(blendAttachmentState);
 }
 
-void VulkanPipeline::enableDepthTest(bool isEnable, bool isWriteEnable, VkCompareOp compareOp, bool isDepthBoundTestEnable)
+void VulkanGraphicPipeline::enableDepthTest(bool isEnable, bool isWriteEnable, VkCompareOp compareOp, bool isDepthBoundTestEnable)
 {
 	mDepthStencilStateInfo.depthTestEnable = isEnable;
 	mDepthStencilStateInfo.depthWriteEnable = isWriteEnable;
@@ -158,7 +153,7 @@ void VulkanPipeline::enableDepthTest(bool isEnable, bool isWriteEnable, VkCompar
 	mDepthStencilStateInfo.depthBoundsTestEnable = isDepthBoundTestEnable;
 }
 
-void VulkanPipeline::enableStencilTest(bool isEnable, VkStencilOpState frontState, VkStencilOpState backState)
+void VulkanGraphicPipeline::enableStencilTest(bool isEnable, VkStencilOpState frontState, VkStencilOpState backState)
 {
 	mDepthStencilStateInfo.stencilTestEnable = isEnable;
 }

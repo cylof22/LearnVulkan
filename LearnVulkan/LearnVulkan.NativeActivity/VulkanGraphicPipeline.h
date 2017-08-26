@@ -7,16 +7,15 @@ class VulkanDevice;
 class VulkanRenderable;
 struct VulkanGraphicPipelineState;
 
-class VulkanPipeline
+class VulkanGraphicPipeline
 {
 public:
-	VulkanPipeline(VulkanDevice* pDevice);
-	~VulkanPipeline();
+	VulkanGraphicPipeline(VulkanDevice* pDevice);
+	~VulkanGraphicPipeline();
 
 	VkResult createPipeLineCache();
 
 	bool createGraphicPipeline(ANativeWindow* pWnd, const VulkanRenderable* pRenderable, const VulkanGraphicPipelineState& pipelineState, VkPipeline& pipeline, VkPipelineLayout& layout);
-	bool createComputePipeline();
 	void destroyPipeline(const VkPipeline& pipeline);
 	void destroyPipelineCache(const VkPipelineCache& pipelineCache);
 

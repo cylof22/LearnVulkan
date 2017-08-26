@@ -9,7 +9,7 @@ class VulkanSwapChain;
 class VulkanDevice;
 class VulkanInstance;
 class VulkanRenderable;
-class VulkanPipeline;
+class VulkanGraphicPipeline;
 
 class VulkanRenderer
 {
@@ -33,7 +33,7 @@ public:
 	const VkCommandPool& getCmdPool() const { return m_cmdPool; }
 	const VkRenderPass& getRenderPass() const { return m_renderPass; }
 	VkDescriptorPool& getDescriptorPool() { return m_descriptorPool; }
-	VulkanPipeline* getGraphicPipeline() const { return m_pPipeline; }
+	VulkanGraphicPipeline* getGraphicPipeline() const { return m_pPipeline; }
 	
 protected:
 	bool reInit();
@@ -41,7 +41,7 @@ private:
 	VulkanSwapChain* m_pSwapChain;
 	VulkanDevice* m_pGraphicDevice;
 	VulkanInstance* m_pInstance;
-	VulkanPipeline* m_pPipeline;
+	VulkanGraphicPipeline* m_pPipeline;
 
 	VkFence m_renderFence;
 	VkCommandPool m_cmdPool;
