@@ -9,9 +9,9 @@ public:
 		std::vector<std::pair<VkFormat, VkDeviceSize>> descriptions, uint32_t binding = 0);
 	~VulkanHardwareVertexBuffer();
 
-	VkVertexInputBindingDescription& getVertexInputBinding() { return m_vertexBinding; }
-	const std::vector<VkVertexInputAttributeDescription>& getVertexInputAttributes() { return m_vertexAttributes; }
-	const VkBuffer& getVertexBuffer() { return m_vertexBuffer; }
+	const VkVertexInputBindingDescription& getVertexInputBinding() const { return m_vertexBinding; }
+	const std::vector<VkVertexInputAttributeDescription>& getVertexInputAttributes() const { return m_vertexAttributes; }
+	const VkBuffer& getVertexBuffer() const { return m_vertexBuffer; }
 
 	const uint32_t size() const { return m_size; };
 private:
