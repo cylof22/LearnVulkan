@@ -1,6 +1,7 @@
 #include "pch.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanMemoryBarrierSet.h"
+#include "VulkanHardwareBuffer.h"
 #include "VulkanHardwareVertexBuffer.h"
 #include "VulkanHardwareIndexBuffer.h"
 #include "VulkanRenderPass.h"
@@ -85,7 +86,7 @@ void VulkanCommandBuffer::bindVertexBuffer(const VulkanHardwareVertexBuffer & ve
 	vkCmdBindVertexBuffers(m_cmdBuffer, binding, 1, (VkBuffer*)&vertexBuffer.getVertexBuffer(), &offset);
 }
 
-void VulkanCommandBuffer::bindIndexBuffer(const VulkanHardwareIndexBuffer & indexBuffer, VkDeviceSize offset = { 0 })
+void VulkanCommandBuffer::bindIndexBuffer(const VulkanHardwareIndexBuffer & indexBuffer, VkDeviceSize offset /*= { 0 }*/)
 {
 	vkCmdBindIndexBuffer(m_cmdBuffer, indexBuffer.getBuffer(), offset, indexBuffer.getType());
 }
@@ -221,11 +222,31 @@ void VulkanCommandBuffer::endRenderPass()
 {
 }
 
+void VulkanCommandBuffer::updateBuffer(VulkanHardwareBuffer & buffer, const void * data, uint32_t offset, uint32_t length)
+{
+}
+
+void VulkanCommandBuffer::copyBuffer(VulkanHardwareBuffer src, VulkanHardwareBuffer dest, uint32_t srcOffset, uint32_t destOffset, uint32_t sizeInBytes)
+{
+}
+
 void VulkanCommandBuffer::drawIndexed(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexOffset, uint32_t firstInstance, uint32_t instanceCount)
 {
 }
 
 void VulkanCommandBuffer::drawArrays(uint32_t firstVertex, uint32_t vertexCount, uint32_t firstInstance, uint32_t instanceCount)
+{
+}
+
+void VulkanCommandBuffer::drawArraysIndirect(VulkanHardwareBuffer & buffer, uint32_t offset, uint32_t drawCount, uint32_t stride)
+{
+}
+
+void VulkanCommandBuffer::drawIndexedIndirect(VulkanHardwareIndexBuffer & buffer)
+{
+}
+
+void VulkanCommandBuffer::drawIndirect(VulkanHardwareBuffer & buffer, uint32_t offset, uint32_t count, uint32_t stride)
 {
 }
 

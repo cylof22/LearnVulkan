@@ -10,6 +10,8 @@ class VulkanHardwareVertexBuffer;
 class VulkanHardwareIndexBuffer;
 class VulkanRenderPass;
 class VulkanFrameBuffer;
+class VulkanHardwareBuffer;
+class VulkanHardwareTextureBuffer;
 
 class VulkanCommandBuffer
 {
@@ -68,17 +70,19 @@ public:
 	void endRenderPass();
 
 	// Buffer, Image
-	void updateBuffer(Buffer& buffer, const void* data, uint32_t offset, uint32_t length);
-	void copyBuffer(api::Buffer src, api::Buffer dest, uint32_t srcOffset, uint32_t destOffset, uint32_t sizeInBytes);
-	void blitImage(api::TextureStore& src, api::TextureStore& dest, types::ImageLayout srcLayout, types::ImageLayout dstLayout, types::ImageBlitRange* regions, uint32 numRegions, types::SamplerFilter filter);
-	void copyImageToBuffer(api::TextureStore& srcImage, types::ImageLayout srcImageLayout, api::Buffer& dstBuffer, types::BufferImageCopy* regions, uint32 numRegions);
+	void updateBuffer(VulkanHardwareBuffer& buffer, const void* data, uint32_t offset, uint32_t length);
+	void copyBuffer(VulkanHardwareBuffer src, VulkanHardwareBuffer dest, uint32_t srcOffset, uint32_t destOffset, uint32_t sizeInBytes);
+	/*void blitImage(VulkanHardwareTextureBuffer& src, VulkanHardwareTextureBuffer& dest, VkImageLayout srcLayout, VkImageLayout dstLayout, 
+		types::ImageBlitRange* regions, uint32_t numRegions, types::SamplerFilter filter);
+	void copyImageToBuffer(VulkanHardwareTextureBuffer& srcImage, VkImageLayout srcImageLayout, VulkanHardwareBuffer& dstBuffer,
+		types::BufferImageCopy* regions, uint32_t numRegions);*/
 
 	// Drawing 
 	void drawIndexed(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexOffset = 0, uint32_t firstInstance = 0, uint32_t instanceCount = 1);
 	void drawArrays(uint32_t firstVertex, uint32_t vertexCount, uint32_t firstInstance = 0, uint32_t instanceCount = 1);
-	void drawArraysIndirect(api::Buffer& buffer, uint32 offset, uint32 drawCount, uint32 stride);
-	void drawIndexedIndirect(Buffer& buffer);
-	void drawIndirect(Buffer& buffer, uint32_t offset, uint32_t count, uint32_t stride);
+	void drawArraysIndirect(VulkanHardwareBuffer& buffer, uint32_t offset, uint32_t drawCount, uint32_t stride);
+	void drawIndexedIndirect(VulkanHardwareIndexBuffer& buffer);
+	void drawIndirect(VulkanHardwareBuffer& buffer, uint32_t offset, uint32_t count, uint32_t stride);
 	void dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
 
 private:

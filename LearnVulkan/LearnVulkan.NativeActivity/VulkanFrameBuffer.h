@@ -24,6 +24,7 @@ public:
 	VkImageView* getColorBufferView();
 
 	VkImage* getDepthStencilBuffer();
+	VkDeviceMemory* getDepthStencilMemory();
 	VkImageView* getDepthStencilBufferView();
 
 	const VkFormat getColorFormat() const;
@@ -51,6 +52,7 @@ private:
 
 	// depth buffer
 	std::vector<VkImage> m_depthStencilBuffer;
+	std::vector<VkDeviceMemory> m_depthStencilMemory;
 	std::vector<VkImageView> m_depthStencilBufferView;
 };
 

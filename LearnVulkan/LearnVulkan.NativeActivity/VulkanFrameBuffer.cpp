@@ -20,6 +20,7 @@ void VulkanFrameBuffer::colorBufferSize(uint32_t colorSize)
 void VulkanFrameBuffer::depthStencilSize(uint32_t depthSize)
 {
 	m_depthStencilBuffer.resize(depthSize);
+	m_depthStencilMemory.resize(depthSize);
 	m_depthStencilBufferView.resize(depthSize);
 }
 
@@ -36,6 +37,11 @@ VkImageView * VulkanFrameBuffer::getColorBufferView()
 VkImage * VulkanFrameBuffer::getDepthStencilBuffer()
 {
 	return m_depthStencilBuffer.empty() ? nullptr : m_depthStencilBuffer.data();
+}
+
+VkDeviceMemory * VulkanFrameBuffer::getDepthStencilMemory()
+{
+	return m_depthStencilBuffer.empty() ? nullptr : m_depthStencilMemory.data();
 }
 
 VkImageView * VulkanFrameBuffer::getDepthStencilBufferView()

@@ -228,6 +228,7 @@
     <ClInclude Include="VulkanDescriptorSetMgr.h" />
     <ClInclude Include="VulkanFrameBuffer.h" />
     <ClInclude Include="VulkanGraphicContext.h" />
+    <ClInclude Include="VulkanHardwareBuffer.h" />
     <ClInclude Include="VulkanHardwareTextureBuffer.h" />
     <ClInclude Include="VulkanHardwareUniformBuffer.h" />
     <ClInclude Include="VulkanMemoryBarrierSet.h" />
@@ -258,6 +259,7 @@
     <ClCompile Include="VulkanDescriptorSetMgr.cpp" />
     <ClCompile Include="VulkanFrameBuffer.cpp" />
     <ClCompile Include="VulkanGraphicContext.cpp" />
+    <ClCompile Include="VulkanHardwareBuffer.cpp" />
     <ClCompile Include="VulkanHardwareTextureBuffer.cpp" />
     <ClCompile Include="VulkanHardwareUniformBuffer.cpp" />
     <ClCompile Include="VulkanMemoryBarrierSet.cpp" />

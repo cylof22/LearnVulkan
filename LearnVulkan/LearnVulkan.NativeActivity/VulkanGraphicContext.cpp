@@ -69,7 +69,7 @@ bool VulkanGraphicContext::initVkInstance()
 	return res == VK_SUCCESS;
 }
 
-VKAPI_ATTR VkBool32 VKAPI_CALL debugFunction(VkFlags msgFlags, VkDebugReportObjectTypeEXT objType, uint64_t srcObj, size_t location, int32_t msgCode, const char * pLayerPrefix, const char * pMsg, void * pUserData)
+VKAPI_ATTR VkBool32 VKAPI_CALL debugFunctionContext(VkFlags msgFlags, VkDebugReportObjectTypeEXT objType, uint64_t srcObj, size_t location, int32_t msgCode, const char * pLayerPrefix, const char * pMsg, void * pUserData)
 {
 	if (msgFlags & VK_DEBUG_REPORT_ERROR_BIT_EXT)
 	{
@@ -112,7 +112,7 @@ bool VulkanGraphicContext::initDebugCallbacks()
 		VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT |
 		VK_DEBUG_REPORT_ERROR_BIT_EXT |
 		VK_DEBUG_REPORT_DEBUG_BIT_EXT;
-	dbgReportCallbackInfo.pfnCallback = debugFunction;
+	dbgReportCallbackInfo.pfnCallback = debugFunctionContext;
 
 	VkResult res = vkCreateDebugReportCallbackEXT(m_instance, &dbgReportCallbackInfo, VK_ALLOC_CALLBACK, &m_debugReportCallback);
 
@@ -390,6 +390,78 @@ namespace {
 		};
 		return preferredDsFormat[format - VK_FORMAT_D16_UNORM];
 	}
+
+	bool getMemoryTypeIndex(VkPhysicalDeviceMemoryProperties& deviceMemProps,
+		uint32_t typeBits, VkMemoryPropertyFlagBits properties,
+		uint32_t& outTypeIndex)
+	{
+		for (;;)
+		{
+			uint32_t typeBitsTmp = typeBits;
+			for (uint32_t i = 0; i < 32; ++i)
+			{
+				if ((typeBitsTmp & 1) == 1)
+				{
+					if (VkMemoryPropertyFlagBits(deviceMemProps.memoryTypes[i].propertyFlags & properties) == properties)
+					{
+						outTypeIndex = i;
+						return true;
+					}
+				}
+				typeBitsTmp >>= 1;
+			}
+			if (properties & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT)
+			{
+				properties = VkMemoryPropertyFlagBits(properties & ~VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT);
+				continue;
+			}
+			else
+			{
+				break;
+			}
+		}
+		return false;
+	}
+
+
+	VkDeviceMemory allocateMemory(VkDevice device, VkPhysicalDeviceMemoryProperties& deviceMemProps,
+		const VkMemoryRequirements& memoryRequirements,
+		VkMemoryPropertyFlagBits allocMemProperty)
+	{
+		VkDeviceMemory memory;
+		VkMemoryAllocateInfo sMemoryAllocInfo;
+		sMemoryAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+		sMemoryAllocInfo.pNext = NULL;
+		sMemoryAllocInfo.allocationSize = memoryRequirements.size;
+		assert(getMemoryTypeIndex(deviceMemProps, memoryRequirements.memoryTypeBits,
+			allocMemProperty, sMemoryAllocInfo.memoryTypeIndex));
+		vkAllocateMemory(device, &sMemoryAllocInfo, NULL, &memory);
+		return memory;
+	}
+
+	bool allocateImageDeviceMemory(VkDevice device, VkPhysicalDeviceMemoryProperties& memprops,
+		VkMemoryPropertyFlagBits allocMemProperty,
+		VkImage& image, VkDeviceMemory& outMemory,
+		VkMemoryRequirements* outMemRequirements)
+	{
+		VkMemoryRequirements memReq;
+		VkMemoryRequirements* memReqPtr = &memReq;
+		if (outMemRequirements)
+		{
+			memReqPtr = outMemRequirements;
+		}
+		vkGetImageMemoryRequirements(device, image, memReqPtr);
+		if (memReqPtr->memoryTypeBits == 0) // find the first allowed type
+			return false;
+
+		outMemory = allocateMemory(device, memprops, *memReqPtr, allocMemProperty);
+		if (outMemory == VK_NULL_HANDLE)
+			return false;
+
+		vkBindImageMemory(device, image, outMemory, 0);
+		return true;
+	}
+
 }
 
 bool VulkanGraphicContext::initSwapChain(bool hasDepth, bool hasStencil, uint32_t& swapChainLength)
@@ -661,8 +733,9 @@ bool VulkanGraphicContext::initSwapChain(bool hasDepth, bool hasStencil, uint32_
 			VkResult rslt = vkCreateImage(m_device, &dsCreateInfo, nullptr, &m_pWindow->getScreenFbo()->getDepthStencilBuffer()[i]);
 
 			// allocate the image memory
-			VkDeviceMemory depthStencilMemory;
-			//vkAllocateMemory(m_device, , VK_ALLOC_CALLBACK, &depthStencilMemory);
+			bool isOk = allocateImageDeviceMemory(m_device, m_deviceMemProperties, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+				m_pWindow->getScreenFbo()->getDepthStencilBuffer()[i],
+				m_pWindow->getScreenFbo()->getDepthStencilMemory()[i], nullptr);
 
 			// create the depth stencil view
 			VkImageViewCreateInfo dsViewCreateInfo = {};
