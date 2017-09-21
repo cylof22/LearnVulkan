@@ -759,6 +759,20 @@ bool VulkanGraphicContext::initSwapChain(bool hasDepth, bool hasStencil, uint32_
 	return false;
 }
 
+bool VulkanGraphicContext::initSynchronizationObjects(uint32_t swapChainLength)
+{
+	return false;
+}
+
+bool VulkanGraphicContext::initPresentCommandBuffer(uint32_t swapChainLength)
+{
+	return false;
+}
+
+void VulkanGraphicContext::setInitialSwapchainLayouts(VkDevice device, bool hasDepth, bool hasStencil, uint32_t swapImageIndex, uint32_t swapChainLength)
+{
+}
+
 bool VulkanGraphicContext::init()
 {
 	// initialise vulkan instance
@@ -791,17 +805,26 @@ bool VulkanGraphicContext::init()
 		vkCreateCommandPool(m_device, &pInfo, NULL, &m_universalCommandPool);
 	}
 
-	//// initialise the swap chain images
-	//if (!initSwapChain(*_platformContextHandles, *_displayHandle, hasDepth, hasStencil,
-	//	_OSManager.getDisplayAttributes(), swapChainLength))
-	//	return false;
+	// initialize the swap chain images
+	uint32_t swapChainLength = 0;
+	if (!initSwapChain(true, true, swapChainLength))
+		return false;
 
-	//// acquire the first image
-	//if (vkAcquireNextImageKHR(m_device, m_swapChain, -1, m_semaphoreImageAcquired[m_currentImageAcqSem], VK_NULL_HANDLE, m_swapIndex) != VK_SUCCESS)
-	//	return false;
+	// initialize synchronization object
+	if (!initSynchronizationObjects(swapChainLength))
+		return false;
 
-	//setInitialSwapchainLayouts(*_platformContextHandles, *_displayHandle, hasDepth, hasStencil, swapIndex, swapChainLength);
-	//vk::ResetFences(_platformContextHandles->context.device, 1, &_platformContextHandles->fenceRender[swapIndex]);
+	// initialize present command buffer
+	if (!initPresentCommandBuffer(swapChainLength))
+		return false;
+
+	// acquire the first image
+	if (vkAcquireNextImageKHR(m_device, m_swapChain, -1, m_semaphoreImageAcquired[m_currentImageAcqSem], VK_NULL_HANDLE, &m_swapIndex) != VK_SUCCESS)
+		return false;
+
+	// initialize the swapchain layout
+	setInitialSwapchainLayouts(m_device, true, true, m_swapIndex, swapChainLength);
+	vkResetFences(m_device, 1, &m_fenceRender[m_swapIndex]);
 
 	return false;
 }

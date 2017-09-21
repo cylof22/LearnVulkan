@@ -38,6 +38,9 @@ private:
 	bool initLogicalDevice();
 	bool initSurface();
 	bool initSwapChain(bool hasDepth, bool hasStencil, uint32_t& swapChainLength);
+	bool initSynchronizationObjects(uint32_t swapChainLength);
+	bool initPresentCommandBuffer(uint32_t swapChainLength);
+	void setInitialSwapchainLayouts(VkDevice device, bool hasDepth, bool hasStencil, uint32_t swapImageIndex, uint32_t swapChainLength);
 
 private:
 #ifdef VK_USE_PLATFORM_ANDROID_KHR
