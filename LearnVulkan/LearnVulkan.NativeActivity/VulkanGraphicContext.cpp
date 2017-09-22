@@ -759,9 +759,50 @@ bool VulkanGraphicContext::initSwapChain(bool hasDepth, bool hasStencil, uint32_
 	return false;
 }
 
-bool VulkanGraphicContext::initSynchronizationObjects(uint32_t swapChainLength)
+bool VulkanGraphicContext::initSynchronizationObjects(uint32_t numSwapImages)
 {
-	return false;
+	// create the semaphores
+	VkSemaphoreCreateInfo semaphoreCreateInfo = {};
+	semaphoreCreateInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
+	VkFenceCreateInfo fenceCreateInfo = {};
+	fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	fenceCreateInfo.flags = VK_FENCE_CREATE_SIGNALED_BIT;
+
+	VkResult res;
+	for (uint32_t i = 0; i < numSwapImages; ++i)
+	{
+		res = vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_semaphoreFinishedRendering[i]);
+		assert(res == VK_SUCCESS);
+
+		res = vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_semaphoreCanBeginRendering[i]);
+		assert(res == VK_SUCCESS);
+
+		res = vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_semaphoreCanPresent[i]);
+		assert(res == VK_SUCCESS);
+
+		res = vkCreateSemaphore(m_device, &semaphoreCreateInfo, nullptr, &m_semaphoreImageAcquired[i]);
+		assert(res == VK_SUCCESS);
+
+		res = vkCreateFence(m_device, &fenceCreateInfo, nullptr, &m_fencePrePresent[i]);
+		assert(res == VK_SUCCESS);
+
+		res = vkCreateFence(m_device, &fenceCreateInfo, nullptr, &m_fenceRender[i]);
+		assert(res == VK_SUCCESS);
+
+		res = vkCreateFence(m_device, &fenceCreateInfo, nullptr, &m_fenceAcquire[i]);
+		assert(res == VK_SUCCESS);
+	}
+
+	res = vkCreateFence(m_device, &fenceCreateInfo, nullptr, &m_fencePrePresent[numSwapImages]);
+	assert(res == VK_SUCCESS);
+
+	res = vkCreateFence(m_device, &fenceCreateInfo, nullptr, &m_fenceAcquire[numSwapImages]);
+	assert(res == VK_SUCCESS);
+
+	res = vkCreateSemaphore(m_device, &semaphoreCreateInfo, NULL, &m_semaphoreImageAcquired[numSwapImages]);
+	assert(res == VK_SUCCESS);
+
+	return true;
 }
 
 bool VulkanGraphicContext::initPresentCommandBuffer(uint32_t swapChainLength)
