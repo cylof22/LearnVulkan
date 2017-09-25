@@ -695,7 +695,7 @@ bool VulkanGraphicContext::initSwapChain(bool hasDepth, bool hasStencil, uint32_
 	VkImageViewCreateInfo viewCreateInfo = {};
 	viewCreateInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
 	viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	//viewCreateInfo.format = displayHandle.onscreenFbo.colorFormat;
+	viewCreateInfo.format = m_pWindow->getScreenFbo()->getColorFormat();
 	viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_R;
 	viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_G;
 	viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_B;
@@ -807,7 +807,60 @@ bool VulkanGraphicContext::initSynchronizationObjects(uint32_t numSwapImages)
 
 bool VulkanGraphicContext::initPresentCommandBuffer(uint32_t swapChainLength)
 {
-	return false;
+	// create the commandpool and setup commandbuffer
+	VkCommandBufferAllocateInfo cinfo = {};
+	cinfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+	cinfo.commandPool = m_universalCommandPool;
+	cinfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+	cinfo.commandBufferCount = swapChainLength;
+
+	vkAllocateCommandBuffers(m_device, &cinfo, m_acquireBarrierCommandBuffersRenderQueue);
+	vkAllocateCommandBuffers(m_device, &cinfo, m_presentBarrierCommandBuffersRenderQueue);
+
+	VkImageMemoryBarrier barrier = {};
+	barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+	barrier.pNext = NULL;
+	barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+	barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	barrier.subresourceRange.baseArrayLayer = 0;
+	barrier.subresourceRange.baseMipLevel = 0;
+	barrier.subresourceRange.layerCount = 1;
+	barrier.subresourceRange.levelCount = 1;
+
+	VkCommandBufferBeginInfo beginnfo = {};
+	beginnfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+
+	for (uint32_t swapIndex = 0; swapIndex < swapChainLength; ++swapIndex)
+	{
+		barrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		barrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+		barrier.newLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+
+		barrier.image = m_pWindow->getScreenFbo()->getColorBuffer()[swapIndex];
+		vkBeginCommandBuffer(m_presentBarrierCommandBuffersRenderQueue[swapIndex], &beginnfo);
+		vkCmdPipelineBarrier(m_presentBarrierCommandBuffersRenderQueue[swapIndex],
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, NULL, 0,
+			NULL, 1, &barrier);
+		vkEndCommandBuffer(m_presentBarrierCommandBuffersRenderQueue[swapIndex]);
+
+		// post present
+		barrier.srcAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		barrier.oldLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+		barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+		barrier.image = m_pWindow->getScreenFbo()->getColorBuffer()[swapIndex];
+		vkBeginCommandBuffer(m_acquireBarrierCommandBuffersRenderQueue[swapIndex], &beginnfo);
+		vkCmdPipelineBarrier(m_acquireBarrierCommandBuffersRenderQueue[swapIndex],
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+			VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, 0, 0, NULL, 0,
+			NULL, 1, &barrier);
+		vkEndCommandBuffer(m_acquireBarrierCommandBuffersRenderQueue[swapIndex]);
+	}
+	return true;
 }
 
 void VulkanGraphicContext::setInitialSwapchainLayouts(VkDevice device, bool hasDepth, bool hasStencil, uint32_t swapImageIndex, uint32_t swapChainLength)
