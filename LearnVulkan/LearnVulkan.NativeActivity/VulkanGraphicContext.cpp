@@ -462,6 +462,76 @@ namespace {
 		return true;
 	}
 
+	void setImageLayout(VkCommandBuffer& cmd, VkImageLayout oldLayout, VkImageLayout newLayout,
+		VkImageAspectFlags aspectMask, VkAccessFlags srcAccessMask, VkImage image)
+	{
+		VkImageMemoryBarrier imageMemBarrier = {};
+		imageMemBarrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+		imageMemBarrier.pNext = NULL;
+		imageMemBarrier.srcAccessMask = srcAccessMask;
+		imageMemBarrier.dstAccessMask = 0;
+		imageMemBarrier.oldLayout = oldLayout;
+		imageMemBarrier.newLayout = newLayout;
+		imageMemBarrier.image = image;
+		imageMemBarrier.subresourceRange = { aspectMask, 0, 1, 0, 1 };
+
+		if (newLayout == VK_IMAGE_LAYOUT_GENERAL)
+		{
+			imageMemBarrier.dstAccessMask =
+				VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT
+				| VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_HOST_READ_BIT
+				| VK_ACCESS_INPUT_ATTACHMENT_READ_BIT | VK_ACCESS_MEMORY_READ_BIT
+				| VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_TRANSFER_READ_BIT;
+		}
+		else if (newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL)
+		{
+			/* Make sure anything that was copying from this image has completed */
+			imageMemBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+		}
+		else if (newLayout == VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL)
+		{
+			imageMemBarrier.dstAccessMask =
+				VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+		}
+		else if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL)
+		{
+			imageMemBarrier.dstAccessMask =
+				VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+		}
+		else if (newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL)
+		{
+			/* Make sure any Copy or CPU writes to image are flushed */
+			imageMemBarrier.dstAccessMask =
+				VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_INPUT_ATTACHMENT_READ_BIT;
+		}
+		else if (newLayout == VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL)
+		{
+			/* Make sure any Copy or CPU writes to image are flushed */
+			imageMemBarrier.dstAccessMask =
+				VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+		}
+		else if (newLayout == VK_IMAGE_LAYOUT_PRESENT_SRC_KHR)
+		{
+			imageMemBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+		}
+
+		VkImageMemoryBarrier* memBarries = &imageMemBarrier;
+		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, NULL, 0,
+			NULL, 1, memBarries);
+	}
+
+	VkCommandBuffer allocPrimaryCmdBuffer(VkDevice device, VkCommandPool universalCmdPool)
+	{
+		VkResult res;
+		VkCommandBufferAllocateInfo allocInfo = {};
+		allocInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
+		allocInfo.commandBufferCount = 1;
+		allocInfo.commandPool = universalCmdPool;
+		allocInfo.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
+		VkCommandBuffer cmd;
+		res = vkAllocateCommandBuffers(device, &allocInfo, &cmd);
+		return cmd;
+	}
 }
 
 bool VulkanGraphicContext::initSwapChain(bool hasDepth, bool hasStencil, uint32_t& swapChainLength)
@@ -863,8 +933,57 @@ bool VulkanGraphicContext::initPresentCommandBuffer(uint32_t swapChainLength)
 	return true;
 }
 
-void VulkanGraphicContext::setInitialSwapchainLayouts(VkDevice device, bool hasDepth, bool hasStencil, uint32_t swapImageIndex, uint32_t swapChainLength)
+void VulkanGraphicContext::setInitialSwapchainLayouts(bool hasDepth, bool hasStencil, uint32_t swapChain, uint32_t swapChainLength)
 {
+	VkResult res;
+	VkCommandBuffer cmdImgLayoutTrans = allocPrimaryCmdBuffer(m_device, m_universalCommandPool);
+	VkCommandBufferBeginInfo cmdBeginInfo = {};
+	cmdBeginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+	cmdBeginInfo.flags = VK_COMMAND_BUFFER_USAGE_SIMULTANEOUS_USE_BIT;
+	res = vkBeginCommandBuffer(cmdImgLayoutTrans, &cmdBeginInfo);
+
+	bool useDepthStencil = hasDepth || hasStencil;
+	for (uint32_t i = 0; i < swapChainLength; ++i)
+	{
+		// prepare the current swapchain image for writing
+		if (i == swapChain)
+		{
+			setImageLayout(cmdImgLayoutTrans, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_COLOR_BIT, 0, m_pWindow->getScreenFbo()->getColorBuffer()[i]);
+		}
+		else// set all other swapchains to present so they will be transformed properly later.
+		{
+			setImageLayout(cmdImgLayoutTrans, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
+				VK_IMAGE_ASPECT_COLOR_BIT, 0, m_pWindow->getScreenFbo()->getColorBuffer()[i]);
+		}
+		if (useDepthStencil)
+		{
+			setImageLayout(cmdImgLayoutTrans, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+				VK_IMAGE_ASPECT_DEPTH_BIT | (hasStencil ? VK_IMAGE_ASPECT_STENCIL_BIT : 0),
+				0, m_pWindow->getScreenFbo()->getDepthStencilBuffer()[i]);
+		}
+	}
+	vkEndCommandBuffer(cmdImgLayoutTrans);
+	VkSubmitInfo submitInfo = {};
+	submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	submitInfo.pCommandBuffers = &cmdImgLayoutTrans;
+	submitInfo.commandBufferCount = 1;
+	submitInfo.pSignalSemaphores = &m_semaphoreCanBeginRendering[swapChain];
+	submitInfo.signalSemaphoreCount = 1;
+	submitInfo.pWaitSemaphores = &m_semaphoreImageAcquired[m_currentImageAcqSem];
+	submitInfo.waitSemaphoreCount = 1;
+
+	VkPipelineStageFlags pipeStageFlags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	submitInfo.pWaitDstStageMask = &pipeStageFlags;
+
+	VkFence fence;
+	VkFenceCreateInfo fenceInfo{};
+	fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
+	vkCreateFence(m_device, &fenceInfo, NULL, &fence);
+	vkQueueSubmit(m_universalQueue, 1, &submitInfo, fence);
+	vkWaitForFences(m_device, 1, &fence, true, uint64_t(-1));
+	vkDestroyFence(m_device, fence, NULL);
+	vkFreeCommandBuffers(m_device, m_universalCommandPool, 1, &cmdImgLayoutTrans);
 }
 
 bool VulkanGraphicContext::init()
@@ -917,7 +1036,7 @@ bool VulkanGraphicContext::init()
 		return false;
 
 	// initialize the swapchain layout
-	setInitialSwapchainLayouts(m_device, true, true, m_swapIndex, swapChainLength);
+	setInitialSwapchainLayouts(true, true, m_swapIndex, swapChainLength);
 	vkResetFences(m_device, 1, &m_fenceRender[m_swapIndex]);
 
 	return false;
