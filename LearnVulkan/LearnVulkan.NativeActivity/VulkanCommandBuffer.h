@@ -3,6 +3,7 @@
 #include <glm\glm.hpp>
 #include "common\vulkan_wrapper.h"
 
+class VulkanGraphicContext;
 class VulkanMemoryBarrierSet;
 class VulkanGraphicPipeline;
 class VulkanComputePipeline;
@@ -16,7 +17,7 @@ class VulkanHardwareTextureBuffer;
 class VulkanCommandBuffer
 {
 public:
-	VulkanCommandBuffer();
+	VulkanCommandBuffer(VulkanGraphicContext* pContext);
 	~VulkanCommandBuffer();
 
 	// Synchronization
@@ -84,9 +85,14 @@ public:
 	void drawIndexedIndirect(VulkanHardwareIndexBuffer& buffer);
 	void drawIndirect(VulkanHardwareBuffer& buffer, uint32_t offset, uint32_t count, uint32_t stride);
 	void dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY = 1, uint32_t numGroupsZ = 1);
+private:
+	void submitCommandBuffers(VkQueue queue, VkDevice device, const VkCommandBuffer* cmdBuffs,
+		uint32_t numCmdBuffs = 1, const VkSemaphore* waitSems = NULL, uint32_t numWaitSems = 0,
+		const VkSemaphore* signalSems = NULL, uint32_t numSignalSems = 0, VkFence signalFence = VK_NULL_HANDLE);
 
 private:
 	VkCommandBuffer m_cmdBuffer;
 	bool m_isRecording;
+	VulkanGraphicContext* m_pGraphicContext;
 };
 

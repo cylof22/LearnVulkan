@@ -29,6 +29,13 @@ public:
 
 	VkQueue getMainQueue() { return m_universalQueue; }
 
+	uint32_t getSwapChainIndex() const { return m_swapIndex; }
+
+	VkSemaphore getBegingRecordingSemaphore(uint32_t index) const { return m_semaphoreFinishedRendering[index]; }
+	VkSemaphore getBegingRecordingCheckingSemaphore(uint32_t index) const { return m_semaphoreCanBeginRendering[index]; }
+	VkSemaphore getFinishingRecordingSemaphore(uint32_t index) const { return m_semaphoreFinishedRendering[index]; }
+	VkFence getRenderFence(uint32_t index) const { return m_fenceRender[index]; }
+
 	VkDevice getDevice() { return m_device; }
 	VkPhysicalDevice getGPU() { return m_physicalDevice; }
 private:

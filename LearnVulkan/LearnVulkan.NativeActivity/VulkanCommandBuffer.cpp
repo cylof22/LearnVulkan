@@ -1,4 +1,5 @@
 #include "pch.h"
+#include "VulkanGraphicContext.h"
 #include "VulkanCommandBuffer.h"
 #include "VulkanMemoryBarrierSet.h"
 #include "VulkanHardwareBuffer.h"
@@ -7,7 +8,8 @@
 #include "VulkanRenderPass.h"
 #include "VulkanFrameBuffer.h"
 
-VulkanCommandBuffer::VulkanCommandBuffer()
+VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphicContext* pContext)
+	: m_pGraphicContext(pContext)
 {
 }
 
@@ -155,23 +157,63 @@ void VulkanCommandBuffer::endRecording()
 
 void VulkanCommandBuffer::submit(const VkSemaphore & waitSemaphore, const VkSemaphore & signalSemaphore, const VkFence fence)
 {
+	VkSemaphore* waitSems = NULL;
+	VkSemaphore* signalSems = NULL;
 
+	if (waitSemaphore != VK_NULL_HANDLE)
+	{
+		waitSems = (VkSemaphore*)&waitSemaphore;
+	}
+	if (signalSemaphore != VK_NULL_HANDLE)
+	{
+		signalSems = (VkSemaphore*)&signalSemaphore;
+	}
+	submitCommandBuffers(m_pGraphicContext->getMainQueue(), m_pGraphicContext->getDevice(), &m_cmdBuffer, 1, waitSems, waitSems != 0, signalSems, signalSems != 0, fence);
 }
 
 void VulkanCommandBuffer::submit(VkFence & fence)
 {
+	uint32_t swapIndex = m_pGraphicContext->getSwapChainIndex();
+	VkSemaphore checkBeginingSemaphore = m_pGraphicContext->getBegingRecordingCheckingSemaphore(swapIndex);
+	VkSemaphore beginingSeamphore = m_pGraphicContext->getBegingRecordingSemaphore(swapIndex);
+
+	submitCommandBuffers(m_pGraphicContext->getMainQueue(), m_pGraphicContext->getDevice(), &m_cmdBuffer, 1, &checkBeginingSemaphore,
+		checkBeginingSemaphore != VK_NULL_HANDLE, &beginingSeamphore,
+		beginingSeamphore != VK_NULL_HANDLE, fence);
 }
 
 void VulkanCommandBuffer::submit()
 {
+	uint32_t swapIndex = m_pGraphicContext->getSwapChainIndex();
+	VkSemaphore checkBeginingSemaphore = m_pGraphicContext->getBegingRecordingCheckingSemaphore(swapIndex);
+	VkSemaphore beginingSeamphore = m_pGraphicContext->getBegingRecordingSemaphore(swapIndex);
+	VkFence fence = m_pGraphicContext->getRenderFence(swapIndex);
+
+	submitCommandBuffers(m_pGraphicContext->getMainQueue(), m_pGraphicContext->getDevice(), &m_cmdBuffer, 1, &checkBeginingSemaphore,
+		checkBeginingSemaphore != VK_NULL_HANDLE, &beginingSeamphore,
+		beginingSeamphore != VK_NULL_HANDLE, fence);
+
 }
 
 void VulkanCommandBuffer::submitEndOfFrame(VkSemaphore & waitSemaphore)
 {
+	uint32_t swapIndex = m_pGraphicContext->getSwapChainIndex();
+	VkFence renderFence = m_pGraphicContext->getRenderFence(swapIndex);
+	VkSemaphore finishedRenderingSemaphore = m_pGraphicContext->getFinishingRecordingSemaphore(swapIndex);
+
+	submitCommandBuffers(m_pGraphicContext->getMainQueue(), m_pGraphicContext->getDevice(), &m_cmdBuffer, 1,
+		&waitSemaphore, waitSemaphore != VK_NULL_HANDLE, &finishedRenderingSemaphore,
+		finishedRenderingSemaphore != VK_NULL_HANDLE, renderFence);
 }
 
 void VulkanCommandBuffer::submitStartOfFrame(VkSemaphore & signalSemaphore, const VkFence & fence)
 {
+	uint32_t swapIndex = m_pGraphicContext->getSwapChainIndex();
+	VkSemaphore checkBeginingSemaphore = m_pGraphicContext->getBegingRecordingCheckingSemaphore(swapIndex);
+
+	submitCommandBuffers(m_pGraphicContext->getMainQueue(), m_pGraphicContext->getDevice(), &m_cmdBuffer, 1,
+		&checkBeginingSemaphore, checkBeginingSemaphore != VK_NULL_HANDLE,
+		&signalSemaphore, signalSemaphore != VK_NULL_HANDLE, fence);
 }
 
 void VulkanCommandBuffer::enqueueSecondaryCmd(VkCommandBuffer & secondaryCmdBuffer)
@@ -252,4 +294,21 @@ void VulkanCommandBuffer::drawIndirect(VulkanHardwareBuffer & buffer, uint32_t o
 
 void VulkanCommandBuffer::dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)
 {
+}
+
+void VulkanCommandBuffer::submitCommandBuffers(VkQueue queue, VkDevice device, const VkCommandBuffer * cmdBuffs, uint32_t numCmdBuffs, const VkSemaphore * waitSems, uint32_t numWaitSems, const VkSemaphore * signalSems, uint32_t numSignalSems, VkFence signalFence)
+{
+	VkResult res;
+	VkPipelineStageFlags pipeStageFlags = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	VkSubmitInfo nfo = {};
+	nfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+	nfo.waitSemaphoreCount = numWaitSems;
+	nfo.pWaitSemaphores = waitSems;
+	nfo.pWaitDstStageMask = &pipeStageFlags;
+	nfo.pCommandBuffers = cmdBuffs;
+	nfo.commandBufferCount = numCmdBuffs;
+	nfo.pSignalSemaphores = signalSems;
+	nfo.signalSemaphoreCount = numSignalSems;
+	res = vkQueueSubmit(queue, 1, &nfo, signalFence);
+	assert(res == VK_SUCCESS);
 }
