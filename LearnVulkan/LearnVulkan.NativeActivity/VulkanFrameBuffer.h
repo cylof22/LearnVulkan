@@ -22,16 +22,21 @@ public:
 
 	VkImage* getColorBuffer();
 	VkImageView* getColorBufferView();
+	uint32_t getNumColorAttachments() const;
 
 	VkImage* getDepthStencilBuffer();
 	VkDeviceMemory* getDepthStencilMemory();
 	VkImageView* getDepthStencilBufferView();
+	uint32_t getNumDepthStencilAttachments() const;
 
 	const VkFormat getColorFormat() const;
 	void setColorFormat(VkFormat colorFormat);
 
 	const VkFormat getDepthFormat() const;
 	void setDepthFormat(VkFormat depthFormat);
+
+	void setDimension(const VkOffset2D offset, const VkExtent2D extent);
+	VkRect2D getDimensions() const { return m_frameDimension; }
 
 private:
 	VulkanRenderPass m_vulkanRenderPass;
@@ -54,5 +59,7 @@ private:
 	std::vector<VkImage> m_depthStencilBuffer;
 	std::vector<VkDeviceMemory> m_depthStencilMemory;
 	std::vector<VkImageView> m_depthStencilBufferView;
+
+	VkRect2D m_frameDimension;
 };
 

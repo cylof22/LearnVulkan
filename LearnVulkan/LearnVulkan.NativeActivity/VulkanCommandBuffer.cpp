@@ -7,6 +7,7 @@
 #include "VulkanHardwareIndexBuffer.h"
 #include "VulkanRenderPass.h"
 #include "VulkanFrameBuffer.h"
+#include <array>
 
 VulkanCommandBuffer::VulkanCommandBuffer(VulkanGraphicContext* pContext)
 	: m_pGraphicContext(pContext)
@@ -218,50 +219,154 @@ void VulkanCommandBuffer::submitStartOfFrame(VkSemaphore & signalSemaphore, cons
 
 void VulkanCommandBuffer::enqueueSecondaryCmd(VkCommandBuffer & secondaryCmdBuffer)
 {
+	//objectRefs.push_back(secondaryCmdBuffer);
+	
+	assert(secondaryCmdBuffer != VK_NULL_HANDLE);
+	vkCmdExecuteCommands(m_cmdBuffer, 1, &secondaryCmdBuffer);
 }
 
 void VulkanCommandBuffer::enqueueSecondaryCmd(VkCommandBuffer * secondaryCmdBuffers, uint32_t numCmdBuffers)
 {
+	// add to objectRefs: record the enqueue second command buffers
+
+	vkCmdExecuteCommands(m_cmdBuffer, numCmdBuffers, secondaryCmdBuffers);
 }
 
-void VulkanCommandBuffer::enqueueSecondaryCmdBeginMultiple(uint32_t expectedMax)
+void VulkanCommandBuffer::enqueueSecondaryCmdBeginMultiple(uint32_t expectedNumber)
 {
+	m_multiEnqueueCache.resize(0);
+	m_multiEnqueueCache.reserve(expectedNumber);
 }
 
 void VulkanCommandBuffer::enqueueSecondaryCmdsEnqueueMultiple(VkCommandBuffer * secondaryCmdBuffers, uint32_t numCmdBuffers)
 {
+	m_multiEnqueueCache.reserve(m_multiEnqueueCache.size() + numCmdBuffers);
+	for (uint32_t i = 0; i < numCmdBuffers; ++i)
+	{
+		//objectRefs.push_back(secondaryCmdBuffers[i]);
+		m_multiEnqueueCache.push_back(secondaryCmdBuffers[i]);
+	}
 }
 
 void VulkanCommandBuffer::enqueueSecondaryCmdsSubmitMultiple(bool keepAllocated)
 {
+	vkCmdExecuteCommands(m_cmdBuffer, (uint32_t)m_multiEnqueueCache.size(), m_multiEnqueueCache.data());
+	m_multiEnqueueCache.resize(0);
 }
 
-void VulkanCommandBuffer::beginRenderPass(VulkanFrameBuffer & fbo, const VkRect2D & renderArea, bool inlineFirstSubpass, const glm::vec4 & clearColor, float clearDepth, uint32_t clearStencil)
+void VulkanCommandBuffer::beginRenderPass(VulkanFrameBuffer & fbo, const VkRect2D & renderArea, bool inlineFirstSubpass, const glm::vec4 & clearColor, 
+	float clearDepth, uint32_t clearStencil)
 {
+	glm::vec4 clearColors[4];
+	glm::float32 clearDepths[4];
+	uint32_t clearStencils[4];
+	assert(fbo.getNumColorAttachments() <= 4);
+
+	for (uint32_t i = 0; i < fbo.getNumColorAttachments(); ++i)
+	{
+		clearColors[i] = clearColor;
+	}
+
+	for (uint32_t i = 0; i < fbo.getNumDepthStencilAttachments(); ++i)
+	{
+		clearDepths[i] = clearDepth;
+		clearStencils[i] = clearStencil;
+	}
+
+	beginRenderPass(fbo, fbo.getAttachedRenderPass(), renderArea, inlineFirstSubpass, clearColors,
+		fbo.getNumColorAttachments(), clearDepths, clearStencils, fbo.getNumDepthStencilAttachments());
+
 }
 
-void VulkanCommandBuffer::beginRenderPass(VulkanFrameBuffer & fbo, const VkRect2D & renderArea, bool inlineFirstSubpass, const glm::vec4 * clearColors, uint32_t numClearColors, float clearDepth, uint32_t clearStencil)
+void VulkanCommandBuffer::beginRenderPass(VulkanFrameBuffer & fbo, const VkRect2D & renderArea, bool inlineFirstSubpass, const glm::vec4 * clearColors, 
+	uint32_t numClearColors, float clearDepth, uint32_t clearStencil)
 {
+	glm::float32 clearDepths[4];
+	uint32_t clearStencils[4];
+	for (uint32_t i = 0; i < fbo.getNumDepthStencilAttachments(); ++i)
+	{
+		clearDepths[i] = clearDepth;
+		clearStencils[i] = clearStencil;
+	}
+	beginRenderPass(fbo, fbo.getAttachedRenderPass(), renderArea, inlineFirstSubpass, clearColors, numClearColors,
+		clearDepths, clearStencils, fbo.getNumDepthStencilAttachments());
 }
 
 void VulkanCommandBuffer::beginRenderPass(VulkanFrameBuffer & fbo, bool inlineFirstSubpass, const glm::vec4 & clearColor, float clearDepth, uint32_t clearStencil)
 {
+	glm::vec4 clearColors[4];
+	glm::float32 clearDepths[4];
+	uint32_t clearStencils[4];
+	assert(fbo.getNumColorAttachments() <= 4);
+	for (uint32_t i = 0; i < fbo.getNumColorAttachments(); ++i)
+	{
+		clearColors[i] = clearColor;
+	}
+
+	for (uint32_t i = 0; i < fbo.getNumDepthStencilAttachments(); ++i)
+	{
+		clearDepths[i] = clearDepth;
+		clearStencils[i] = clearStencil;
+	}
+	beginRenderPass(fbo, fbo.getAttachedRenderPass(), fbo.getDimensions(),
+		inlineFirstSubpass, clearColors, fbo.getNumColorAttachments(), clearDepths, clearStencils,
+		fbo.getNumDepthStencilAttachments());
 }
 
-void VulkanCommandBuffer::beginRenderPass(VulkanFrameBuffer & fbo, const VulkanRenderPass & renderPass, const VkRect2D & renderArea, bool inlineFirstSubpass, const glm::vec4 & clearColor, float clearDepth, uint32_t clearStencil)
+void VulkanCommandBuffer::beginRenderPass(VulkanFrameBuffer & fbo, const VulkanRenderPass & renderPass, const VkRect2D & renderArea, bool inlineFirstSubpass, 
+	const glm::vec4 & clearColor, float clearDepth, uint32_t clearStencil)
 {
+	std::array<glm::vec4, 4> clearColors;
+	std::array<glm::float32, 4> clearDepths;
+	std::array<uint32_t, 4> clearStencils;
+	assert(fbo.getNumColorAttachments() <= clearColors.size());
+	for (uint32_t i = 0; i < fbo.getNumColorAttachments(); ++i)
+	{
+		clearColors[i] = clearColor;
+	}
+
+	for (uint32_t i = 0; i < fbo.getNumDepthStencilAttachments(); ++i)
+	{
+		clearDepths[i] = clearDepth;
+		clearStencils[i] = clearStencil;
+	}
+
+	beginRenderPass(fbo.getFrameBuffer(), renderPass.getRenderPass(), renderArea, inlineFirstSubpass, clearColors.data(), fbo.getNumColorAttachments(),
+		clearDepths.data(), clearStencils.data(), fbo.getNumDepthStencilAttachments());
 }
 
-void VulkanCommandBuffer::beginRenderPass(VulkanFrameBuffer & fbo, const VulkanRenderPass & renderPass, const VkRect2D & renderArea, bool inlineFirstSubpass, const glm::vec4 * clearColors, uint32_t numClearColors, float * clearDepth, uint32_t * clearStencil, uint32_t numClearDepthStencil)
+void VulkanCommandBuffer::beginRenderPass(VulkanFrameBuffer & fbo, const VulkanRenderPass & renderPass, const VkRect2D & renderArea, bool inlineFirstSubpass, 
+	const glm::vec4 * clearColors, uint32_t numClearColors, float * clearDepth, uint32_t * clearStencil, uint32_t numClearDepthStencil)
 {
+	beginRenderPass(fbo.getFrameBuffer(), renderPass.getRenderPass(), renderArea, inlineFirstSubpass, clearColors, numClearColors, clearDepth, 
+		clearStencil, numClearDepthStencil);
 }
 
-void VulkanCommandBuffer::beginRenderPass(VulkanFrameBuffer & fbo, const VulkanRenderPass & renderPass, bool inlineFirstSubpass, const glm::vec4 & clearColor, float clearDepth, uint32_t clearStencil)
+void VulkanCommandBuffer::beginRenderPass(VulkanFrameBuffer & fbo, const VulkanRenderPass & renderPass, bool inlineFirstSubpass, const glm::vec4 & clearColor, 
+	float clearDepth, uint32_t clearStencil)
 {
+	std::array<glm::vec4, 4> clearColors;
+	std::array<glm::float32, 4> clearDepths;
+	std::array<uint32_t, 4> clearStencils;
+	assert(fbo.getNumColorAttachments() <= clearColors.size());
+	for (uint32_t i = 0; i < fbo.getNumColorAttachments(); ++i)
+	{
+		clearColors[i] = clearColor;
+	}
+
+	for (uint32_t i = 0; i < fbo.getNumDepthStencilAttachments(); ++i)
+	{
+		clearDepths[i] = clearDepth;
+		clearStencils[i] = clearStencil;
+	}
+	beginRenderPass(fbo.getFrameBuffer(), renderPass.getRenderPass(), fbo.getDimensions(),
+		inlineFirstSubpass, clearColors.data(), fbo.getNumColorAttachments(), clearDepths.data(), clearStencils.data(),
+		fbo.getNumDepthStencilAttachments());
 }
 
 void VulkanCommandBuffer::endRenderPass()
 {
+	vkCmdEndRenderPass(m_cmdBuffer);
 }
 
 void VulkanCommandBuffer::updateBuffer(VulkanHardwareBuffer & buffer, const void * data, uint32_t offset, uint32_t length)
@@ -311,4 +416,29 @@ void VulkanCommandBuffer::submitCommandBuffers(VkQueue queue, VkDevice device, c
 	nfo.signalSemaphoreCount = numSignalSems;
 	res = vkQueueSubmit(queue, 1, &nfo, signalFence);
 	assert(res == VK_SUCCESS);
+}
+
+void VulkanCommandBuffer::beginRenderPass(VkFramebuffer fbo, VkRenderPass renderPass, const VkRect2D & renderArea, bool inlineFirstSubpass, const glm::vec4 * clearColors, uint32_t numClearColors, float * clearDepth, uint32_t * clearStencil, uint32_t numClearDepthStencil)
+{
+	VkRenderPassBeginInfo nfo = {};
+	nfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+	std::vector<VkClearValue> clearValues(numClearColors + numClearDepthStencil);
+	uint32_t i = 0;
+	for (; i < numClearColors; ++i)
+	{
+		memcpy(clearValues[i].color.float32, &clearColors[i], sizeof(float) * 4);
+	}
+	for (numClearDepthStencil += numClearColors; i < numClearDepthStencil; ++i)
+	{
+		clearValues[i].depthStencil.depth = clearDepth[i - numClearColors];
+		clearValues[i].depthStencil.stencil = clearStencil[i - numClearColors];
+	}
+	nfo.pClearValues = clearValues.data();
+	nfo.clearValueCount = (uint32_t)clearValues.size();
+	nfo.framebuffer = fbo;
+	nfo.renderArea = renderArea;
+	nfo.renderPass = renderPass;
+
+	vkCmdBeginRenderPass(m_cmdBuffer, &nfo, inlineFirstSubpass ?
+		VK_SUBPASS_CONTENTS_INLINE : VK_SUBPASS_CONTENTS_SECONDARY_COMMAND_BUFFERS);
 }

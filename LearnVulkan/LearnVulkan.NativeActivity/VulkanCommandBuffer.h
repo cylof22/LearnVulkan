@@ -89,10 +89,12 @@ private:
 	void submitCommandBuffers(VkQueue queue, VkDevice device, const VkCommandBuffer* cmdBuffs,
 		uint32_t numCmdBuffs = 1, const VkSemaphore* waitSems = NULL, uint32_t numWaitSems = 0,
 		const VkSemaphore* signalSems = NULL, uint32_t numSignalSems = 0, VkFence signalFence = VK_NULL_HANDLE);
-
+	void beginRenderPass(VkFramebuffer fbo, VkRenderPass renderPass, const VkRect2D& renderArea, bool inlineFirstSubpass, const glm::vec4* clearColors, 
+		uint32_t numClearColors, float* clearDepth, uint32_t* clearStencil, uint32_t numClearDepthStencil);
 private:
 	VkCommandBuffer m_cmdBuffer;
 	bool m_isRecording;
 	VulkanGraphicContext* m_pGraphicContext;
+	std::vector<VkCommandBuffer> m_multiEnqueueCache;
 };
 

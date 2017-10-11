@@ -34,6 +34,12 @@ VkImageView * VulkanFrameBuffer::getColorBufferView()
 	return m_colorBufferView.empty() ? nullptr : m_colorBufferView.data();
 }
 
+uint32_t VulkanFrameBuffer::getNumColorAttachments() const
+{
+	assert(m_colorBuffer.size() == m_colorBufferView.size());
+	return m_colorBuffer.size();
+}
+
 VkImage * VulkanFrameBuffer::getDepthStencilBuffer()
 {
 	return m_depthStencilBuffer.empty() ? nullptr : m_depthStencilBuffer.data();
@@ -47,6 +53,12 @@ VkDeviceMemory * VulkanFrameBuffer::getDepthStencilMemory()
 VkImageView * VulkanFrameBuffer::getDepthStencilBufferView()
 {
 	return m_depthStencilBufferView.empty() ? nullptr : m_depthStencilBufferView.data();
+}
+
+uint32_t VulkanFrameBuffer::getNumDepthStencilAttachments() const
+{
+	assert(m_depthStencilBuffer.size() == m_depthStencilBufferView.size());
+	return m_depthStencilBuffer.size();
 }
 
 const VkFormat VulkanFrameBuffer::getColorFormat() const
@@ -67,4 +79,10 @@ const VkFormat VulkanFrameBuffer::getDepthFormat() const
 void VulkanFrameBuffer::setDepthFormat(VkFormat depthFormat)
 {
 	m_depthFormat = depthFormat;
+}
+
+void VulkanFrameBuffer::setDimension(const VkOffset2D offset, const VkExtent2D extent)
+{
+	m_frameDimension.offset = offset;
+	m_frameDimension.extent = extent;
 }
