@@ -49,6 +49,7 @@
     <ClInclude Include="VulkanRenderPass.h" />
     <ClInclude Include="VulkanFrameBuffer.h" />
     <ClInclude Include="VulkanHardwareBuffer.h" />
+    <ClInclude Include="VulkanGraphicCapbility.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="android_native_app_glue.c" />
@@ -83,6 +84,7 @@
     <ClCompile Include="VulkanRenderPass.cpp" />
     <ClCompile Include="VulkanFrameBuffer.cpp" />
     <ClCompile Include="VulkanHardwareBuffer.cpp" />
+    <ClCompile Include="VulkanGraphicCapbility.cpp" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="include">
