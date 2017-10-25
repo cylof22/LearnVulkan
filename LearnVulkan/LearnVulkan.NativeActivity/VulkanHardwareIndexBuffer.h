@@ -1,20 +1,20 @@
 #pragma once
 #include "common\vulkan_wrapper.h"
+#include "VulkanHardwareBuffer.h"
 
-class VulkanHardwareIndexBuffer
+class VulkanGraphicContext;
+
+class VulkanHardwareIndexBuffer : public VulkanHardwareBuffer
 {
 public:
-	VulkanHardwareIndexBuffer(const VkPhysicalDevice* pGPU, const VkDevice& device, const void * pIndexData, uint32_t indexSize);
-	~VulkanHardwareIndexBuffer();
+	VulkanHardwareIndexBuffer(VulkanGraphicContext* pContext, VkIndexType indexType, const void * pIndexData, uint32_t indexSize);
+	virtual ~VulkanHardwareIndexBuffer();
 
-	const VkBuffer& getBuffer() const { return m_indexBuffer; }
-	const uint32_t size() const { return m_size; }
+	const uint32_t getIndexSize() const;
+
 	VkIndexType getType() const { return m_type; }
 
-
 private:
-	VkBuffer m_indexBuffer;
-	VkDeviceMemory m_indexMemory;
 	uint32_t m_size;
 	VkIndexType m_type;
 };

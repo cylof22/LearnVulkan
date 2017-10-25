@@ -1,11 +1,10 @@
 #include "VulkanHardwareVertexBuffer.h"
 #include "VulkanMemoryBufferMgr.h"
 
-VulkanHardwareVertexBuffer::VulkanHardwareVertexBuffer(const VkPhysicalDevice* pGPU, const VkDevice& device, const void * pVertexData, uint32_t vertexSize, uint32_t stride,
-	std::vector<std::pair<VkFormat, VkDeviceSize>> descriptions, uint32_t binding /*= 0*/)
-	: m_vertexBuffer(VK_NULL_HANDLE), m_vertexMemory(VK_NULL_HANDLE)
+VulkanHardwareVertexBuffer::VulkanHardwareVertexBuffer(VulkanGraphicContext* pContext, const void * pVertexData, uint32_t vertexSize, uint32_t stride, 
+	std::vector<std::pair<VkFormat, VkDeviceSize>> descriptions, uint32_t binding)
+	: VulkanHardwareBuffer(pContext, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, pVertexData, vertexSize)
 {
-	VulkanMemoryBufferMgr::get()->createVertexBuffer(pGPU, device, pVertexData, vertexSize, stride, m_vertexBuffer, m_vertexMemory);
 	m_vertexBinding.binding = binding;
 	m_vertexBinding.stride = stride;
 	m_vertexBinding.inputRate = VK_VERTEX_INPUT_RATE_VERTEX;
@@ -20,7 +19,6 @@ VulkanHardwareVertexBuffer::VulkanHardwareVertexBuffer(const VkPhysicalDevice* p
 
 		m_vertexAttributes.emplace_back(attributeDescription);
 	}
-	
 
 	m_size = vertexSize / stride;
 }
