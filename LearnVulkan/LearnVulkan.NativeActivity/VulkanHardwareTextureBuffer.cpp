@@ -76,7 +76,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 	imageAllocateInfo.memoryTypeIndex = 0;
 
 	// check the required memory type
-	VulkanMemoryMgr::get()->memoryTypeFromProperties(pDevice->getGPU(), memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+	VulkanMemoryMgr::get()->memoryTypeFromProperties(*pDevice->getGPU(), memoryRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 		imageAllocateInfo.memoryTypeIndex);
 
 	res = vkAllocateMemory(pDevice->getGraphicDevice(), &imageAllocateInfo, nullptr, &m_rMemory);
@@ -114,7 +114,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 		vkGetBufferMemoryRequirements(pDevice->getGraphicDevice(), staging_res.buffer, &mreq_buffer);
 
 		uint32_t memoryType = 0;
-		VulkanMemoryMgr::get()->memoryTypeFromProperties(pDevice->getGPU(), mreq_buffer.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memoryType);
+		VulkanMemoryMgr::get()->memoryTypeFromProperties(*pDevice->getGPU(), mreq_buffer.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, memoryType);
 		VkMemoryAllocateInfo alloc_info_buffer = {
 			VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mreq_buffer.size,
 			memoryType
@@ -311,7 +311,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice * pD
 			0 };
 
 		// check the required memory type
-		VulkanMemoryMgr::get()->memoryTypeFromProperties(pDevice->getGPU(), mreq_buffer.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
+		VulkanMemoryMgr::get()->memoryTypeFromProperties(*pDevice->getGPU(), mreq_buffer.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
 			alloc_info_buffer.memoryTypeIndex);
 
 		res = vkAllocateMemory(pDevice->getGraphicDevice(), &alloc_info_buffer, nullptr, &stagingMemory);
@@ -370,7 +370,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice * pD
 			0
 		};
 
-		VulkanMemoryMgr::get()->memoryTypeFromProperties(pDevice->getGPU(), mreq_image.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+		VulkanMemoryMgr::get()->memoryTypeFromProperties(*pDevice->getGPU(), mreq_image.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
 			alloc_info_image.memoryTypeIndex);
 
 		res = vkAllocateMemory(pDevice->getGraphicDevice(), &alloc_info_image, nullptr, &optimal_image_mem);

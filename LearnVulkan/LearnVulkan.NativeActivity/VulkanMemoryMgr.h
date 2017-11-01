@@ -8,7 +8,7 @@ class VulkanMemoryMgr
 public:
 	static VulkanMemoryMgr* get();
 
-	bool memoryTypeFromProperties(const VkPhysicalDevice* pGPU, uint32_t typeBits, VkFlags requirementsMask, uint32_t& typeIndex);
+	bool memoryTypeFromProperties(VkPhysicalDevice rGPU, uint32_t typeBits, VkFlags requirementsMask, uint32_t& typeIndex);
 
 	bool imageLayoutConversion(VkDevice gpuDevice, VkQueue presentQueue, VkCommandPool cmdPool,
 		VkImage image,

@@ -186,7 +186,7 @@ bool VulkanRenderer::createDepthBuffer(ANativeWindow* pWnd)
 	allocateInfo.allocationSize = depthImageRequirement.size;
 	allocateInfo.memoryTypeIndex = 0;
 
-	bool isOk = VulkanMemoryMgr::get()->memoryTypeFromProperties(m_pGraphicDevice->getGPU(), 
+	bool isOk = VulkanMemoryMgr::get()->memoryTypeFromProperties(*m_pGraphicDevice->getGPU(), 
 		depthImageRequirement.memoryTypeBits, 0, allocateInfo.memoryTypeIndex);
 
 	if (isOk)
@@ -537,7 +537,7 @@ void VulkanRenderer::update(bool includeDepth)
 
 		// create the bind vertex buffer
 		VkDeviceSize offset[1] = { 0 };
-		vkCmdBindVertexBuffers(activeCmdBuffer, 0, 1, &(std::get<0>(rRenderInfo)->getVertexBuffer()->getVertexBuffer()), offset);
+		vkCmdBindVertexBuffers(activeCmdBuffer, 0, 1, &(std::get<0>(rRenderInfo)->getVertexBuffer()->getBuffer()), offset);
 		if(std::get<0>(rRenderInfo)->getIndexBuffer())
 			vkCmdBindIndexBuffer(activeCmdBuffer, std::get<0>(rRenderInfo)->getIndexBuffer()->getBuffer(), *offset, VK_INDEX_TYPE_UINT16);
 

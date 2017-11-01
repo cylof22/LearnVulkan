@@ -4,7 +4,7 @@
 #include "VulkanHardwareBuffer.h"
 
 
-VulkanHardwareBuffer::VulkanHardwareBuffer(VulkanGraphicContext* pContext, VkImageUsageFlags usage, VkMemoryPropertyFlagBits memoryProp, const void * pBufferData, uint32_t bufferSize)
+VulkanHardwareBuffer::VulkanHardwareBuffer(VulkanGraphicContext* pContext, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProp, const void * pBufferData, uint32_t bufferSize)
 	: m_bufferUsage(usage), m_pContext(pContext)
 {
 	VkResult res;
@@ -51,7 +51,7 @@ VulkanHardwareBuffer::VulkanHardwareBuffer(VulkanGraphicContext* pContext, VkIma
 
 		res = vkBindBufferMemory(rDevice, m_buffer, m_memory, 0);
 	}
-	assert(res == VK_SUCCESS)
+	assert(res == VK_SUCCESS);
 }
 
 

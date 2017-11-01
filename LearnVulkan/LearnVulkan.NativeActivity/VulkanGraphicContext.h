@@ -14,6 +14,14 @@ public:
 #elif VK_USE_PLATFORM_WIN32_KHR
 	VulkanGraphicContext(HWND pWnd)
 #endif
+
+	VulkanGraphicContext(VkPhysicalDevice gpu, VkDevice device)
+	: m_physicalDevice(gpu)
+	, m_device(device)
+	{
+
+	}
+
 	~VulkanGraphicContext();
 
 	virtual bool init();

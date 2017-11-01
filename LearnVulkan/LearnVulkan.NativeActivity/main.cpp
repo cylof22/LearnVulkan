@@ -31,6 +31,7 @@
 #include "VulkanPipelineState.h"
 #include "VulkanGraphicPipeline.h"
 #include "VulkanDescriptorSetMgr.h"
+#include "VulkanGraphicContext.h"
 #include <glm\glm.hpp>
 #include <glm\gtc\matrix_transform.hpp>
 
@@ -78,7 +79,9 @@ void addSkyboxEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer, ANa
 	skyboxDescriptions.emplace_back(std::make_pair(VK_FORMAT_R32G32B32A32_SFLOAT, 0));
 	skyboxDescriptions.emplace_back(std::make_pair(VK_FORMAT_R32G32B32_SFLOAT, 16));
 
-	std::shared_ptr<VulkanHardwareVertexBuffer> skyboxVertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(pDevice->getGPU(), pDevice->getGraphicDevice(),
+	VulkanGraphicContext tempContext(*pDevice->getGPU(), pDevice->getGraphicDevice());
+
+	std::shared_ptr<VulkanHardwareVertexBuffer> skyboxVertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(&tempContext,
 		(void*)skyboxGeometry, sizeof(skyboxGeometry), sizeof(float) * 7, skyboxDescriptions);
 
 	const std::string skyboxVertexProg =
@@ -273,8 +276,10 @@ void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer,
 	//	1.f, 0.f,
 	//};
 
+	VulkanGraphicContext tempContext(*pDevice->getGPU(), pDevice->getGraphicDevice());
+
 	// Only used for testing
-	std::shared_ptr<VulkanHardwareVertexBuffer> vertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(pDevice->getGPU(), pDevice->getGraphicDevice(),
+	std::shared_ptr<VulkanHardwareVertexBuffer> vertexBuffer = std::make_shared<VulkanHardwareVertexBuffer>(&tempContext,
 		(void*)vertexData, sizeof(vertexData), sizeof(float) * 7, vertexDescriptions);
 
 	/*const uint16_t indexData[] = {
@@ -345,8 +350,7 @@ void addRenderableEntity(const VulkanDevice* pDevice, VulkanRenderer* pRenderer,
 
 	glm::mat4 imvp = clip * projection * view * model;
 
-	std::shared_ptr<VulkanHardwareUniformBuffer> mvpUniformBuffer = std::make_shared<VulkanHardwareUniformBuffer>(pDevice->getGPU(),
-		pDevice->getGraphicDevice(), &imvp, sizeof(imvp));
+	std::shared_ptr<VulkanHardwareUniformBuffer> mvpUniformBuffer = std::make_shared<VulkanHardwareUniformBuffer>(&tempContext, &imvp, sizeof(imvp));
 
 	renderEntity->setUniformBuffer(mvpUniformBuffer);
 

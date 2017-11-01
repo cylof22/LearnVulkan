@@ -86,7 +86,7 @@ void VulkanCommandBuffer::bindDescriptorSets(VkPipelineBindPoint bindType, VkPip
 
 void VulkanCommandBuffer::bindVertexBuffer(const VulkanHardwareVertexBuffer & vertexBuffer, uint32_t binding, VkDeviceSize offset /*= { 0 }*/)
 {
-	vkCmdBindVertexBuffers(m_cmdBuffer, binding, 1, (VkBuffer*)&vertexBuffer.getVertexBuffer(), &offset);
+	vkCmdBindVertexBuffers(m_cmdBuffer, binding, 1, (VkBuffer*)&vertexBuffer.getBuffer(), &offset);
 }
 
 void VulkanCommandBuffer::bindIndexBuffer(const VulkanHardwareIndexBuffer & indexBuffer, VkDeviceSize offset /*= { 0 }*/)
@@ -379,22 +379,33 @@ void VulkanCommandBuffer::copyBuffer(VulkanHardwareBuffer src, VulkanHardwareBuf
 
 void VulkanCommandBuffer::drawIndexed(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexOffset, uint32_t firstInstance, uint32_t instanceCount)
 {
+	vkCmdDrawIndexed(m_cmdBuffer, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance);
 }
 
 void VulkanCommandBuffer::drawArrays(uint32_t firstVertex, uint32_t vertexCount, uint32_t firstInstance, uint32_t instanceCount)
 {
+	vkCmdDraw(m_cmdBuffer, vertexCount, instanceCount, firstVertex, firstInstance);
 }
 
+// Todo: Need to refactor the VulkanHardwareBuffer, VulkanHardwareVertexBuffer, VulkanHardwareIndexBuffer, ?VulkanHardwareIndirectBuffer?
 void VulkanCommandBuffer::drawArraysIndirect(VulkanHardwareBuffer & buffer, uint32_t offset, uint32_t drawCount, uint32_t stride)
 {
+	// Todo: How to get the native VkBuffer
+	//vkCmdDrawIndirect(m_cmdBuffer, , offset, drawCount, stride);
 }
 
 void VulkanCommandBuffer::drawIndexedIndirect(VulkanHardwareIndexBuffer & buffer)
 {
+	// Todo: How to get the native index VkBuffer
+	//objectRefs.push_back(buffer);
+	//vkCmdDrawIndexedIndirect(m_cmdBuffer, , 0, 1, 0);
 }
 
 void VulkanCommandBuffer::drawIndirect(VulkanHardwareBuffer & buffer, uint32_t offset, uint32_t count, uint32_t stride)
 {
+	// Todo: How to get the native indirect VkBuffer
+	//objectRefs.push_back(buffer);
+	//vkCmdDrawIndirect(m_cmdBuffer, , offset, count, stride);
 }
 
 void VulkanCommandBuffer::dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)

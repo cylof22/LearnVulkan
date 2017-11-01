@@ -49,7 +49,7 @@ bool VulkanMemoryBufferMgr::createVertexBuffer(const VkPhysicalDevice* rGPU, con
 	allocInfo.memoryTypeIndex = 0;
 	allocInfo.allocationSize = memRequires.size;
 
-	bool isOk = VulkanMemoryMgr::get()->memoryTypeFromProperties(rGPU, memRequires.memoryTypeBits, 
+	bool isOk = VulkanMemoryMgr::get()->memoryTypeFromProperties(*rGPU, memRequires.memoryTypeBits, 
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, allocInfo.memoryTypeIndex);
 
 	if (isOk)
@@ -98,7 +98,7 @@ bool VulkanMemoryBufferMgr::createIndexBuffer(const VkPhysicalDevice& rGPU, cons
 	allocInfo.memoryTypeIndex = 0;
 	allocInfo.allocationSize = memRequires.size;
 
-	bool isOk = VulkanMemoryMgr::get()->memoryTypeFromProperties(&rGPU, memRequires.memoryTypeBits,
+	bool isOk = VulkanMemoryMgr::get()->memoryTypeFromProperties(rGPU, memRequires.memoryTypeBits,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, allocInfo.memoryTypeIndex);
 
 	if (isOk)
@@ -147,7 +147,7 @@ bool VulkanMemoryBufferMgr::createUniformBuffer(const VkPhysicalDevice & rGPU, c
 	allocInfo.memoryTypeIndex = 0;
 	allocInfo.allocationSize = memRequires.size;
 
-	bool isOk = VulkanMemoryMgr::get()->memoryTypeFromProperties(&rGPU, memRequires.memoryTypeBits,
+	bool isOk = VulkanMemoryMgr::get()->memoryTypeFromProperties(rGPU, memRequires.memoryTypeBits,
 		VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, allocInfo.memoryTypeIndex);
 
 	if (isOk)

@@ -11,12 +11,12 @@ VulkanMemoryMgr * VulkanMemoryMgr::get()
 	return m_pMemoryMgr;
 }
 
-bool VulkanMemoryMgr::memoryTypeFromProperties(const VkPhysicalDevice* pGPU, uint32_t typeBits, VkFlags requirementsMask, uint32_t& typeIndex)
+bool VulkanMemoryMgr::memoryTypeFromProperties(VkPhysicalDevice rGPU, uint32_t typeBits, VkFlags requirementsMask, uint32_t& typeIndex)
 {
-	if (pGPU)
+	if (rGPU != VK_NULL_HANDLE)
 	{
 		VkPhysicalDeviceMemoryProperties gpuMemoryProperties = {};
-		vkGetPhysicalDeviceMemoryProperties(*pGPU, &gpuMemoryProperties);
+		vkGetPhysicalDeviceMemoryProperties(rGPU, &gpuMemoryProperties);
 
 		for (uint32_t i = 0; i < gpuMemoryProperties.memoryTypeCount; i++)
 		{
