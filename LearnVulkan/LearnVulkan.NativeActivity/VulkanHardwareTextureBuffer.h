@@ -18,6 +18,8 @@ public:
 	~VulkanHardwareTextureBuffer();
 
 	VkDescriptorImageInfo& getDescriptorInfo() { return m_rImageDescriptor; }
+	const VkImage& image() const { return m_rImage; }
+	const VkImageLayout layout() const { return m_rImageDescriptor.imageLayout; }
 
 private:
 	VkImage m_rImage;

@@ -199,7 +199,6 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 		vkQueueSubmit(pDevice->getGraphicQueue(), 1, &skyboxSubmitInfo, skyboxFence);
 
 		vkWaitForFences(pDevice->getGraphicDevice(), 1, &skyboxFence, true, UINT64_MAX);
-
 	}
 	else
 	{
@@ -284,7 +283,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice* pDe
 
 	m_rImageDescriptor.sampler = m_rSampler;
 	m_rImageDescriptor.imageView = m_rView;
-	m_rImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+	m_rImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 }
 
 VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice * pDevice, const VkCommandPool & rCmdPool, 
@@ -460,7 +459,7 @@ VulkanHardwareTextureBuffer::VulkanHardwareTextureBuffer(const VulkanDevice * pD
 		res = vkCreateSampler(pDevice->getGraphicDevice(), &samplerInfo, VK_ALLOC_CALLBACK, &m_rSampler);
 		assert(res == VK_SUCCESS);
 
-		m_rImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+		m_rImageDescriptor.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 		m_rImageDescriptor.imageView = m_rView;
 		m_rImageDescriptor.sampler = m_rSampler;
 	}

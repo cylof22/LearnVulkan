@@ -5,6 +5,7 @@
 #include "VulkanHardwareBuffer.h"
 #include "VulkanHardwareVertexBuffer.h"
 #include "VulkanHardwareIndexBuffer.h"
+#include "VulkanHardwareTextureBuffer.h"
 #include "VulkanRenderPass.h"
 #include "VulkanFrameBuffer.h"
 #include <array>
@@ -369,12 +370,19 @@ void VulkanCommandBuffer::endRenderPass()
 	vkCmdEndRenderPass(m_cmdBuffer);
 }
 
-void VulkanCommandBuffer::updateBuffer(VulkanHardwareBuffer & buffer, const void * data, uint32_t offset, uint32_t length)
+void VulkanCommandBuffer::updateBuffer(VulkanHardwareBuffer & buffer, const void * data,  uint32_t offset, uint32_t length)
 {
+	buffer.updateBuffer(m_cmdBuffer, data, length, offset);
 }
 
 void VulkanCommandBuffer::copyBuffer(VulkanHardwareBuffer src, VulkanHardwareBuffer dest, uint32_t srcOffset, uint32_t destOffset, uint32_t sizeInBytes)
 {
+	dest.copyBuffer(m_cmdBuffer, src, srcOffset, destOffset, sizeInBytes);
+}
+
+void VulkanCommandBuffer::copyImageToBuffer(VulkanHardwareTextureBuffer & srcImage, VulkanHardwareBuffer & dstBuffer, VkBufferImageCopy * regions, uint32_t numRegions)
+{
+	dstBuffer.copyImage(m_cmdBuffer, srcImage, regions, numRegions);
 }
 
 void VulkanCommandBuffer::drawIndexed(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexOffset, uint32_t firstInstance, uint32_t instanceCount)
@@ -391,21 +399,21 @@ void VulkanCommandBuffer::drawArrays(uint32_t firstVertex, uint32_t vertexCount,
 void VulkanCommandBuffer::drawArraysIndirect(VulkanHardwareBuffer & buffer, uint32_t offset, uint32_t drawCount, uint32_t stride)
 {
 	// Todo: How to get the native VkBuffer
-	//vkCmdDrawIndirect(m_cmdBuffer, , offset, drawCount, stride);
+	vkCmdDrawIndirect(m_cmdBuffer, buffer.getBuffer(),offset, drawCount, stride);
 }
 
 void VulkanCommandBuffer::drawIndexedIndirect(VulkanHardwareIndexBuffer & buffer)
 {
 	// Todo: How to get the native index VkBuffer
 	//objectRefs.push_back(buffer);
-	//vkCmdDrawIndexedIndirect(m_cmdBuffer, , 0, 1, 0);
+	vkCmdDrawIndexedIndirect(m_cmdBuffer, buffer.getBuffer(), 0, 1, 0);
 }
 
 void VulkanCommandBuffer::drawIndirect(VulkanHardwareBuffer & buffer, uint32_t offset, uint32_t count, uint32_t stride)
 {
 	// Todo: How to get the native indirect VkBuffer
 	//objectRefs.push_back(buffer);
-	//vkCmdDrawIndirect(m_cmdBuffer, , offset, count, stride);
+	vkCmdDrawIndirect(m_cmdBuffer, buffer.getBuffer(), offset, count, stride);
 }
 
 void VulkanCommandBuffer::dispatchCompute(uint32_t numGroupsX, uint32_t numGroupsY, uint32_t numGroupsZ)

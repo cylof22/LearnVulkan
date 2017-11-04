@@ -37,8 +37,8 @@ public:
 	void bindDescriptorSetCompute(VkPipelineLayout computePipelineLayout, VkDescriptorSet descriptorSet);
 	void bindDescriptorSetCompute(VkPipelineLayout computePipelineLayout, uint32_t index, std::vector<VkDescriptorSet>& descriptorSets);
 	void bindDescriptorSets(VkPipelineBindPoint bindType, VkPipelineLayout pipelineLayout, uint32_t index, std::vector<VkDescriptorSet>& descriptorSets);
-	void bindVertexBuffer(const VulkanHardwareVertexBuffer& vertexBuffer, uint32_t binding, VkDeviceSize offset = { 0 });
-	void bindIndexBuffer(const VulkanHardwareIndexBuffer& indexBuffer, VkDeviceSize offset = { 0 });
+	void bindVertexBuffer(const VulkanHardwareVertexBuffer& vertexBuffer, uint32_t binding, VkDeviceSize offset = 0);
+	void bindIndexBuffer(const VulkanHardwareIndexBuffer& indexBuffer, VkDeviceSize offset = 0);
 
 	// Recording
 	void beginRecording();
@@ -74,9 +74,9 @@ public:
 	void updateBuffer(VulkanHardwareBuffer& buffer, const void* data, uint32_t offset, uint32_t length);
 	void copyBuffer(VulkanHardwareBuffer src, VulkanHardwareBuffer dest, uint32_t srcOffset, uint32_t destOffset, uint32_t sizeInBytes);
 	/*void blitImage(VulkanHardwareTextureBuffer& src, VulkanHardwareTextureBuffer& dest, VkImageLayout srcLayout, VkImageLayout dstLayout, 
-		types::ImageBlitRange* regions, uint32_t numRegions, types::SamplerFilter filter);
-	void copyImageToBuffer(VulkanHardwareTextureBuffer& srcImage, VkImageLayout srcImageLayout, VulkanHardwareBuffer& dstBuffer,
-		types::BufferImageCopy* regions, uint32_t numRegions);*/
+		types::ImageBlitRange* regions, uint32_t numRegions, types::SamplerFilter filter);*/
+	void copyImageToBuffer(VulkanHardwareTextureBuffer& srcImage, VulkanHardwareBuffer& dstBuffer,
+		VkBufferImageCopy* regions, uint32_t numRegions);
 
 	// Drawing 
 	void drawIndexed(uint32_t firstIndex, uint32_t indexCount, uint32_t vertexOffset = 0, uint32_t firstInstance = 0, uint32_t instanceCount = 1);

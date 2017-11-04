@@ -3,6 +3,9 @@
 
 VulkanMemoryMgr* VulkanMemoryMgr::m_pMemoryMgr = nullptr;
 
+VkPhysicalDeviceMemoryProperties g_GpuMemoryProperties = {};
+bool isDevicePropertiesReady = false;
+
 VulkanMemoryMgr * VulkanMemoryMgr::get()
 {
 	if (m_pMemoryMgr == nullptr)
@@ -15,14 +18,17 @@ bool VulkanMemoryMgr::memoryTypeFromProperties(VkPhysicalDevice rGPU, uint32_t t
 {
 	if (rGPU != VK_NULL_HANDLE)
 	{
-		VkPhysicalDeviceMemoryProperties gpuMemoryProperties = {};
-		vkGetPhysicalDeviceMemoryProperties(rGPU, &gpuMemoryProperties);
-
-		for (uint32_t i = 0; i < gpuMemoryProperties.memoryTypeCount; i++)
+		if (!isDevicePropertiesReady)
+		{
+			vkGetPhysicalDeviceMemoryProperties(rGPU, &g_GpuMemoryProperties);
+			isDevicePropertiesReady = true;
+		}
+		
+		for (uint32_t i = 0; i < g_GpuMemoryProperties.memoryTypeCount; i++)
 		{
 			if ((typeBits & 1) == 1)
 			{
-				if ((gpuMemoryProperties.memoryTypes[i].propertyFlags & requirementsMask) == requirementsMask)
+				if ((g_GpuMemoryProperties.memoryTypes[i].propertyFlags & requirementsMask) == requirementsMask)
 				{
 					typeIndex = i;
 					return true;

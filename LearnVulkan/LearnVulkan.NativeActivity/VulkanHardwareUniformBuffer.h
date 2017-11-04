@@ -12,8 +12,6 @@ public:
 
 	VkDescriptorBufferInfo& getDesriptorInfo() { return m_uniformBufferInfo; }
 
-	bool updateUniformBuffer(const VkCommandBuffer& cmdBuffer, const void* pUniformData, uint32_t uniformSize);
-
 private:
 	VkDescriptorBufferInfo m_uniformBufferInfo;
 };

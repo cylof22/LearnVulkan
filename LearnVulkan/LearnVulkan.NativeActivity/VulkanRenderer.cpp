@@ -460,7 +460,7 @@ void VulkanRenderer::update(bool includeDepth)
 
 	glm::mat4 model = glm::mat4(1.0f); 
 
-	rot += 0.005f;
+	rot += 0.007f;
 
 	model = glm::rotate(model, rot, glm::vec3(0.0f, 1.0f, 0.0f)) 
 		* glm::rotate(model, rot, glm::vec3(1.0f, 1.0f, 1.0f));

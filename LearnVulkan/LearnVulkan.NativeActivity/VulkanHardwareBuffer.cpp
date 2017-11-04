@@ -2,7 +2,7 @@
 #include "VulkanGraphicContext.h"
 #include "VulkanMemoryMgr.h"
 #include "VulkanHardwareBuffer.h"
-
+#include "VulkanHardwareTextureBuffer.h"
 
 VulkanHardwareBuffer::VulkanHardwareBuffer(VulkanGraphicContext* pContext, VkBufferUsageFlags usage, VkMemoryPropertyFlags memoryProp, const void * pBufferData, uint32_t bufferSize)
 	: m_bufferUsage(usage), m_pContext(pContext)
@@ -68,4 +68,23 @@ VulkanHardwareBuffer::~VulkanHardwareBuffer()
 		vkFreeMemory(m_pContext->getDevice(), m_memory, VK_ALLOC_CALLBACK);
 		m_memory = VK_NULL_HANDLE;
 	}
+}
+
+bool VulkanHardwareBuffer::updateBuffer(VkCommandBuffer & cmdBuffer, const void * pData, VkDeviceSize size, VkDeviceSize offset /*={ 0 }*/)
+{
+	vkCmdUpdateBuffer(cmdBuffer, m_buffer, offset, size, pData);
+	return false;
+}
+
+bool VulkanHardwareBuffer::copyBuffer(VkCommandBuffer & cmdBuffer, VulkanHardwareBuffer src, uint32_t srcOffset, uint32_t destOffset, uint32_t sizeInBytes)
+{
+	VkBufferCopy copyInfo = { srcOffset, destOffset, sizeInBytes };
+	vkCmdCopyBuffer(cmdBuffer, src.getBuffer(), m_buffer, 1, &copyInfo);
+	return false;
+}
+
+bool VulkanHardwareBuffer::copyImage(VkCommandBuffer & cmdBuffer, VulkanHardwareTextureBuffer srcTexture, VkBufferImageCopy * regions, uint32_t numRegions)
+{
+	vkCmdCopyImageToBuffer(cmdBuffer, srcTexture.image(), srcTexture.layout(), m_buffer, numRegions, regions);
+	return false;
 }

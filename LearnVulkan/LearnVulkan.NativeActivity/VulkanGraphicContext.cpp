@@ -16,8 +16,34 @@ VulkanGraphicContext::VulkanGraphicContext(HWND pWnd)
 }
 #endif // VK_USE_PLATFORM_ANDROID_KHR
 
+VulkanGraphicContext::VulkanGraphicContext(VkPhysicalDevice gpu, VkDevice device)
+	: m_physicalDevice(gpu)
+	, m_device(device)
+{
+	vkGetPhysicalDeviceMemoryProperties(gpu, &m_gpuMemoryProperties);
+}
+
 VulkanGraphicContext::~VulkanGraphicContext()
 {
+}
+
+uint32_t VulkanGraphicContext::getMemoryTypeIndex(uint32_t typeBits, VkFlags requirementsMask)
+{
+	uint32_t typeIndex = 0;
+	for (uint32_t i = 0; i < m_gpuMemoryProperties.memoryTypeCount; i++)
+	{
+		if ((typeBits & 1) == 1)
+		{
+			if ((m_gpuMemoryProperties.memoryTypes[i].propertyFlags & requirementsMask) == requirementsMask)
+			{
+				typeIndex = i;
+				break;
+			}
+		}
+		typeBits >>= 1;
+	}
+
+	return typeIndex;
 }
 
 bool VulkanGraphicContext::initVkInstance()
@@ -127,6 +153,7 @@ bool VulkanGraphicContext::initPhysicalDevice()
 	//Log(Log.Information, "Number of Vulkan Physical devices: [%d]", physicalDeviceCount);
 	uint32_t one = 1;
 	vkEnumeratePhysicalDevices(m_instance, &one, &m_physicalDevice);
+	vkGetPhysicalDeviceMemoryProperties(m_physicalDevice, &m_gpuMemoryProperties);
 	return false;
 }
 

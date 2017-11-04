@@ -15,12 +15,7 @@ public:
 	VulkanGraphicContext(HWND pWnd)
 #endif
 
-	VulkanGraphicContext(VkPhysicalDevice gpu, VkDevice device)
-	: m_physicalDevice(gpu)
-	, m_device(device)
-	{
-
-	}
+	VulkanGraphicContext(VkPhysicalDevice gpu, VkDevice device);
 
 	~VulkanGraphicContext();
 
@@ -46,6 +41,9 @@ public:
 
 	VkDevice getDevice() { return m_device; }
 	VkPhysicalDevice getGPU() { return m_physicalDevice; }
+
+	uint32_t getMemoryTypeIndex(uint32_t typeBits, VkFlags requirementsMask);
+
 private:
 	bool initVkInstance();
 	bool initDebugCallbacks();
@@ -107,6 +105,7 @@ private:
 	uint32_t m_currentImageAcqSem;
 	uint32_t m_swapIndex;
 
+	VkPhysicalDeviceMemoryProperties m_gpuMemoryProperties = {};
 	VulkanRenderWindow* m_pWindow;
 };
 

@@ -14,11 +14,3 @@ VulkanHardwareUniformBuffer::VulkanHardwareUniformBuffer(VulkanGraphicContext * 
 VulkanHardwareUniformBuffer::~VulkanHardwareUniformBuffer()
 {
 }
-
-bool VulkanHardwareUniformBuffer::updateUniformBuffer(const VkCommandBuffer& cmdBuffer, const void* pUniformData, uint32_t uniformSize)
-{
-	VkDeviceSize offset = { 0 };
-	vkCmdUpdateBuffer(cmdBuffer, m_buffer, offset, uniformSize, pUniformData);
-	//VulkanMemoryBufferMgr::get()->updateUniformBuffer(m_GraphicDevice, cmdBuffer, pUniformData, uniformSize, m_uniformBuffer, m_uniformMemory);
-	return true;
-}
